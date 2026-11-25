@@ -40,8 +40,7 @@ const css = `
 html,body{min-height:100%}
 body{color:var(--fg);font-family:system-ui,-apple-system,sans-serif;background:linear-gradient(180deg,#2aa9e0 0%,#0b5d94 25%,#06304f 55%,#020d1c 100%);background-attachment:fixed;padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}
 .dim{position:fixed;inset:0;background:#000;opacity:calc(var(--d)*.55);pointer-events:none;transition:opacity .2s}
-.bub{position:fixed;bottom:-20px;border-radius:50%;border:1px solid #ffffff55;animation:rise linear infinite;pointer-events:none}
-@keyframes rise{to{transform:translateY(-110vh)}}
+
 .gauge{position:fixed;right:14px;top:70px;bottom:24px;width:34px;display:flex;flex-direction:column;align-items:center;gap:6px;z-index:2}
 .gauge .track{flex:1;width:8px;border-radius:8px;background:#ffffff22;position:relative;overflow:hidden}
 .gauge .fill{position:absolute;top:0;left:0;right:0;height:0;background:linear-gradient(#7fe3ff,#35c4ff);border-radius:8px;transition:height .15s}
@@ -100,15 +99,44 @@ th{color:var(--muted);font-weight:500;font-size:.75rem}
 @keyframes bubup{from{transform:translateY(0);opacity:.9}to{transform:translateY(-90px);opacity:0}}
 @media(max-width:480px){.wrap{padding-right:56px}.card{padding:18px}}
 @media(prefers-reduced-motion:reduce){.bub{display:none}}
-
-.sink{animation:bob 1.4s ease-in-out infinite}
-@keyframes bob{0%,100%{transform:translateY(-5px) rotate(6deg)}50%{transform:translateY(5px) rotate(14deg)}}
-.nope{animation:wob .6s}
-@keyframes wob{25%{transform:translateX(-8px) rotate(-8deg)}75%{transform:translateX(8px) rotate(8deg)}}
+body{background:linear-gradient(180deg,#5fd0ff 0%,#1b8ccf 14%,#0b5d94 32%,#06304f 58%,#020d1c 100%);background-attachment:fixed}
+#bg{position:fixed;inset:0;width:100%;height:100%;pointer-events:none}
+.sunglow{position:fixed;top:-130px;left:50%;width:560px;height:360px;margin-left:-280px;background:radial-gradient(closest-side,#fff7c2cc,#ffe08a55 45%,transparent);opacity:calc(1 - var(--d)*1.8);pointer-events:none}
+.kelp{position:fixed;left:0;right:0;bottom:0;width:100%;height:130px;pointer-events:none;opacity:calc(.15 + var(--d)*.6)}
+.kelp path{fill:#04283f;transform-origin:50% 100%;transform-box:fill-box;animation:sway 5s ease-in-out infinite}
+.kelp path:nth-child(2n){animation-duration:6.5s;animation-delay:-2s}
+.kelp path:nth-child(3n){animation-duration:4.2s;animation-delay:-1s;fill:#06344f}
+@keyframes sway{50%{transform:skewX(7deg)}0%,100%{transform:skewX(-7deg)}}
+.flash{position:fixed;inset:0;pointer-events:none;z-index:5;animation:fl 1s ease-out forwards}
+@keyframes fl{from{opacity:1}to{opacity:0}}
+.gauge{position:fixed}
+header em{background:linear-gradient(90deg,#7fe3ff,#ffffff,#35c4ff,#7fe3ff);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shim 6s linear infinite}
+@keyframes shim{to{background-position:300% 0}}
+.card{border-color:#2a6fa3;box-shadow:0 24px 70px #0008,inset 0 1px 0 #ffffff26}
+.btn{transition:transform .12s,filter .12s,box-shadow .12s}
+.btn:hover{transform:translateY(-1px);box-shadow:0 6px 18px #35c4ff33}
+.btn:active{transform:translateY(1px)}
+.stage{height:200px;box-shadow:inset 0 0 40px #0008}
+.stage canvas{position:absolute;inset:0;width:100%;height:100%}
+.stage .diver{margin:-26px 0 0 -48px}
+.stage .diver .prop{transform-box:fill-box;transform-origin:center;animation:prop .16s linear infinite}
+@keyframes prop{50%{transform:scaleY(.25)}}
+.stage .dcount{font-size:1.6rem}
+.stage .lines,.stage .bubs{display:none}
+.sug{display:none}
+.sug.on{display:block;margin:0 0 12px;padding:10px 12px;border:1px solid var(--accent);border-radius:12px;background:#0a3a5c99;animation:pop .3s ease}
+.sug b{color:#fff}
+.archive{max-height:320px;overflow:auto;display:grid;gap:6px;padding-right:4px}
+.arow{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;background:#031425aa;border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:.88rem}
+.arow em{font-style:normal;font-size:.7rem;background:var(--accent);color:#03233a;border-radius:999px;padding:1px 7px;margin-left:4px}
+.arow .btn{padding:6px 12px;font-size:.82rem}
+@media(prefers-reduced-motion:reduce){.kelp path,header em,.stage .diver .prop{animation:none}}
 `;
 
+let FLOW = 0;
 const TIME = 25;
 const MAXD = 7000;
+const START_DAY = "2026-11-25";
 
 const norm = (s: string) =>
   s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
@@ -118,37 +146,85 @@ const tierOf = (pct: number): Tier => {
   return TIERS[TIERS.length - 1];
 };
 
-function lev(a: string, b: string): number {
-  const m: number[][] = [];
-  for (let i = 0; i <= a.length; i++) m[i] = [i];
-  for (let j = 1; j <= b.length; j++) m[0][j] = j;
-  for (let i = 1; i <= a.length; i++)
-    for (let j = 1; j <= b.length; j++)
-      m[i][j] = Math.min(m[i - 1][j] + 1, m[i][j - 1] + 1, m[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
-  return m[a.length][b.length];
-}
+const namesOf = (a: Answer) => [a[0], ...(a[2] ? a[2].split("|") : [])];
 
 function findAnswer(q: Question, text: string): Answer | null {
   const n = norm(text);
   if (!n) return null;
-  let best: Answer | null = null;
-  for (const a of q.a) {
-    const names = [a[0], ...(a[2] ? a[2].split("|") : [])];
-    for (const nm of names) {
-      const nn = norm(nm);
-      if (nn === n) return a;
-      if (!best && n.length >= 5 && nn.length >= 5 && lev(n, nn) <= 1) best = a;
+  for (const a of q.a) for (const nm of namesOf(a)) if (norm(nm) === n) return a;
+  return null;
+}
+
+function osa(a: string, b: string): number {
+  const m: number[][] = [];
+  for (let i = 0; i <= a.length; i++) m[i] = [i];
+  for (let j = 1; j <= b.length; j++) m[0][j] = j;
+  for (let i = 1; i <= a.length; i++)
+    for (let j = 1; j <= b.length; j++) {
+      m[i][j] = Math.min(m[i - 1][j] + 1, m[i][j - 1] + 1, m[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) m[i][j] = Math.min(m[i][j], m[i - 2][j - 2] + 1);
     }
-  }
+  return m[a.length][b.length];
+}
+
+/* elgépelés esetén: „Erre gondoltál?” javaslat */
+function suggest(q: Question, text: string): Answer | null {
+  const n = norm(text);
+  if (n.length < 3) return null;
+  const thr = n.length <= 4 ? 1 : n.length <= 9 ? 2 : 3;
+  let best: Answer | null = null;
+  let bd = 99;
+  for (const a of q.a)
+    for (const nm of namesOf(a)) {
+      const nn = norm(nm);
+      let d = osa(n, nn);
+      if (nn.length >= 4 && nn.indexOf(n) === 0) d = Math.min(d, 1);
+      if (d <= thr && d < bd) {
+        bd = d;
+        best = a;
+      }
+    }
   return best;
 }
 
 const rarest = (q: Question) => [...q.a].sort((x, y) => x[1] - y[1])[0][0];
 
-const dayKey = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const keyOf = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const todayKey = () => keyOf(new Date());
+function daysList(): string[] {
+  const out: string[] = [];
+  const [y, m, d] = START_DAY.split("-").map(Number);
+  const cur = new Date(y, m - 1, d);
+  const end = todayKey();
+  for (let i = 0; i < 4000; i++) {
+    const k = keyOf(cur);
+    if (k > end) break;
+    out.unshift(k);
+    cur.setDate(cur.getDate() + 1);
+  }
+  return out;
+}
+const MONTHS = ["jan.", "febr.", "márc.", "ápr.", "máj.", "jún.", "júl.", "aug.", "szept.", "okt.", "nov.", "dec."];
+const dayLabel = (k: string) => {
+  const [y, m, d] = k.split("-").map(Number);
+  return `${y}. ${MONTHS[m - 1]} ${d}.`;
 };
+
+function lsGet<T>(k: string): T | null {
+  try {
+    return JSON.parse(localStorage.getItem(k) || "null") as T | null;
+  } catch {
+    return null;
+  }
+}
+function lsSet(k: string, v: unknown) {
+  try {
+    localStorage.setItem(k, JSON.stringify(v));
+  } catch {
+    /* nincs tárhely */
+  }
+}
 function hash(s: string): number {
   let h = 2166136261;
   for (let i = 0; i < s.length; i++) {
@@ -166,30 +242,26 @@ function rng(seed: number) {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
-function pickOrder(practice: boolean): number[] {
-  const r = practice ? Math.random : rng(hash("melyviz-" + dayKey()));
+/* a napi kérdéssort az első megnyitáskor eltároljuk, így később is ugyanaz marad */
+function pickOrder(practice: boolean, day: string): number[] {
+  if (!practice) {
+    const st = lsGet<number[]>("melyviz:set:" + day);
+    if (st && st.length === 7 && st.every((i) => Q[i])) return st;
+  }
+  const r = practice ? Math.random : rng(hash("melyviz-" + day));
   const idx = Q.map((_, i) => i);
   for (let i = idx.length - 1; i > 0; i--) {
     const j = Math.floor(r() * (i + 1));
     [idx[i], idx[j]] = [idx[j], idx[i]];
   }
-  return idx.slice(0, 7);
+  const res = idx.slice(0, 7);
+  if (!practice) lsSet("melyviz:set:" + day, res);
+  return res;
 }
 type Saved = { depth: number; emoji: string };
-function getSaved(): Saved | null {
-  try {
-    return JSON.parse(localStorage.getItem("melyviz:" + dayKey()) || "null");
-  } catch {
-    return null;
-  }
-}
-function putSaved(v: Saved) {
-  try {
-    localStorage.setItem("melyviz:" + dayKey(), JSON.stringify(v));
-  } catch {
-    /* nincs tárhely */
-  }
-}
+const getSaved = (day: string) => lsGet<Saved>("melyviz:" + day);
+const putSaved = (day: string, v: Saved) => lsSet("melyviz:" + day, v);
+
 function cdf(z: number): number {
   const t = 1 / (1 + 0.2316419 * Math.abs(z));
   const d = 0.3989423 * Math.exp((-z * z) / 2);
@@ -197,20 +269,40 @@ function cdf(z: number): number {
   return z > 0 ? 1 - p : p;
 }
 
+type RGB = [number, number, number];
+const mix = (a: RGB, b: RGB, t: number): RGB => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+const rgb = (c: RGB) => `rgb(${c.map(Math.round).join(",")})`;
+
+function flash(color: string) {
+  const f = document.createElement("div");
+  f.className = "flash";
+  f.style.background = `radial-gradient(circle,${color}99,transparent 62%)`;
+  document.body.appendChild(f);
+  setTimeout(() => f.remove(), 1100);
+}
+
 /* ---------- Tengeralattjáró ---------- */
-function Sub({ width = 84 }: { width?: number }) {
+function Sub() {
   return (
-    <svg viewBox="0 0 84 48" width={width} height={(width * 48) / 84} aria-hidden="true">
-      <rect x="44" y="0" width="3" height="7" fill="#c99a22" />
-      <rect x="44" y="0" width="10" height="2.5" rx="1" fill="#c99a22" />
-      <rect x="36" y="5" width="20" height="13" rx="4" fill="#e0b43a" />
-      <ellipse cx="44" cy="29" rx="34" ry="15" fill="#f2c94c" />
-      <ellipse cx="44" cy="36" rx="30" ry="7" fill="#d9a92f" opacity=".55" />
-      <path d="M13 29 L3 19 L3 39 Z" fill="#c99a22" />
-      <ellipse cx="5" cy="29" rx="2.5" ry="10" fill="#8a6a15" />
-      {[30, 45, 60].map((cx) => (
-        <circle key={cx} cx={cx} cy="28" r="4.5" fill="#7fe3ff" stroke="#9c7414" strokeWidth="2" />
+    <svg viewBox="0 0 96 52" width="96" height="52" aria-hidden="true">
+      <defs>
+        <linearGradient id="sg" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#ffe27a" />
+          <stop offset=".6" stopColor="#f2c94c" />
+          <stop offset="1" stopColor="#c99a22" />
+        </linearGradient>
+      </defs>
+      <rect x="50" y="1" width="3" height="8" fill="#b88a1c" />
+      <rect x="50" y="1" width="12" height="3" rx="1.5" fill="#b88a1c" />
+      <rect x="40" y="7" width="24" height="14" rx="5" fill="url(#sg)" stroke="#9c7414" strokeWidth="1.5" />
+      <ellipse cx="50" cy="32" rx="38" ry="16" fill="url(#sg)" stroke="#9c7414" strokeWidth="1.5" />
+      <path d="M16 32 L4 20 L4 44 Z" fill="#c99a22" stroke="#9c7414" strokeWidth="1.5" />
+      <g className="prop"><ellipse cx="3" cy="32" rx="2.5" ry="12" fill="#8a6a15" /></g>
+      {[34, 50, 66].map((cx) => (
+        <circle key={cx} cx={cx} cy="31" r="5" fill="#8ff0ff" stroke="#9c7414" strokeWidth="2" />
       ))}
+      <path d="M30 25 q8 -4 18 -3" stroke="#ffffffaa" strokeWidth="2" fill="none" strokeLinecap="round" />
+      <circle cx="86" cy="32" r="3" fill="#fff6b0" />
     </svg>
   );
 }
@@ -301,10 +393,260 @@ function Report({ rounds, total }: { rounds: RoundResult[]; total: number }) {
   );
 }
 
+
+
+/* ---------- Élő háttér ---------- */
+function Background({ d }: { d: number }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  const dRef = useRef(d);
+  dRef.current = d;
+  useEffect(() => {
+    const cv = ref.current!;
+    const g = cv.getContext("2d")!;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const R = Math.random;
+    let W = 0, H = 0;
+    const size = () => {
+      W = window.innerWidth;
+      H = window.innerHeight;
+      cv.width = W * dpr;
+      cv.height = H * dpr;
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+    size();
+    window.addEventListener("resize", size);
+    const snow = Array.from({ length: 110 }, () => ({ x: R(), y: R(), z: 0.3 + R() * 0.9, p: R() * 6.28 }));
+    const fish = Array.from({ length: 7 }, () => ({ x: R(), y: 0.15 + R() * 0.7, v: (0.01 + R() * 0.03) * (R() < 0.5 ? -1 : 1), s: 10 + R() * 22, p: R() * 6.28 }));
+    const jel = Array.from({ length: 6 }, (_, i) => ({ x: R(), y: 0.3 + R() * 0.6, s: 14 + R() * 20, p: R() * 6.28, c: i % 2 ? "255,95,162" : "76,201,240" }));
+    let last = performance.now();
+    let raf = 0;
+    const loop = (now: number) => {
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      const d0 = dRef.current;
+      FLOW *= Math.pow(0.02, dt);
+      g.clearRect(0, 0, W, H);
+      const ra = (1 - d0) * 0.16;
+      if (ra > 0.005)
+        for (let i = 0; i < 6; i++) {
+          const x0 = W * (0.1 + i * 0.17) + Math.sin(now / 3000 + i) * 40;
+          const w = 50 + (i % 3) * 30;
+          const lg = g.createLinearGradient(0, 0, 0, H * 0.85);
+          lg.addColorStop(0, `rgba(190,240,255,${ra})`);
+          lg.addColorStop(1, "rgba(190,240,255,0)");
+          g.fillStyle = lg;
+          g.beginPath();
+          g.moveTo(x0, 0);
+          g.lineTo(x0 + w, 0);
+          g.lineTo(x0 + w * 3 - 120, H * 0.85);
+          g.lineTo(x0 - w * 2 - 60, H * 0.85);
+          g.fill();
+        }
+      g.fillStyle = `rgba(2,16,32,${0.28 + d0 * 0.1})`;
+      fish.forEach((f) => {
+        f.x += f.v * dt;
+        if (f.x > 1.1) f.x = -0.1;
+        if (f.x < -0.1) f.x = 1.1;
+        const x = f.x * W, y = f.y * H + Math.sin(now / 900 + f.p) * 8, s = f.s, dir = f.v > 0 ? 1 : -1;
+        g.beginPath();
+        g.ellipse(x, y, s, s * 0.42, 0, 0, 6.3);
+        g.fill();
+        g.beginPath();
+        g.moveTo(x - dir * s * 0.9, y);
+        g.lineTo(x - dir * s * 1.5, y - s * 0.4);
+        g.lineTo(x - dir * s * 1.5, y + s * 0.4);
+        g.fill();
+      });
+      if (d0 > 0.12)
+        jel.forEach((j) => {
+          let y = (j.y * H - now * 0.006 * (1 + FLOW * 3)) % (H + 60);
+          if (y < -40) y += H + 80;
+          const x = j.x * W + Math.sin(now / 1500 + j.p) * 24;
+          const a = Math.min(0.8, d0 * 1.1) * (0.55 + 0.45 * Math.sin(now / 700 + j.p));
+          const rg = g.createRadialGradient(x, y, 0, x, y, j.s * 2);
+          rg.addColorStop(0, `rgba(${j.c},${a})`);
+          rg.addColorStop(1, `rgba(${j.c},0)`);
+          g.fillStyle = rg;
+          g.beginPath();
+          g.arc(x, y, j.s * 2, 0, 6.3);
+          g.fill();
+        });
+      snow.forEach((s) => {
+        s.y -= dt * (0.012 + 0.03 * s.z) * (1 + FLOW * 14);
+        if (s.y < -0.02) {
+          s.y = 1.02;
+          s.x = R();
+        }
+        const x = s.x * W + Math.sin(now / 1200 + s.p) * 10 * s.z, y = s.y * H, len = FLOW * 26 * s.z;
+        g.strokeStyle = `rgba(220,245,255,${(0.15 + 0.45 * s.z) * (1 - d0 * 0.2)})`;
+        g.lineWidth = s.z * 1.8;
+        g.beginPath();
+        g.moveTo(x, y);
+        g.lineTo(x, y + len + 1);
+        g.stroke();
+      });
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", size);
+    };
+  }, []);
+  return <canvas id="bg" ref={ref} />;
+}
+
+/* ---------- Merülés jelenet ---------- */
+function createStage(cv: HTMLCanvasElement) {
+  const W = (cv.width = cv.clientWidth || 560);
+  const H = (cv.height = 200);
+  const g = cv.getContext("2d")!;
+  type P = { x: number; y: number; vx: number; vy: number; l: number; c: string };
+  const sn = Array.from({ length: 50 }, () => ({ x: Math.random() * W, y: Math.random() * H, z: 0.4 + Math.random() }));
+  let sp: P[] = [];
+  let ring: { r: number; a: number; c: string } | null = null;
+  return {
+    pulse(c: string) {
+      ring = { r: 12, a: 0.9, c };
+    },
+    spark(c: string) {
+      for (let k = 0; k < 34; k++) {
+        const an = Math.random() * 6.28, v = 1 + Math.random() * 4;
+        sp.push({ x: W / 2, y: H / 2, vx: Math.cos(an) * v, vy: Math.sin(an) * v, l: 1, c });
+      }
+    },
+    draw(cur: number, vn: number) {
+      const d = Math.min(1, cur / MAXD), k = Math.min(1, d * 1.5);
+      const bg = g.createLinearGradient(0, 0, 0, H);
+      bg.addColorStop(0, rgb(mix([27, 140, 207], [4, 20, 40], k)));
+      bg.addColorStop(1, rgb(mix([11, 93, 148], [2, 10, 24], Math.min(1, k + 0.2))));
+      g.fillStyle = bg;
+      g.fillRect(0, 0, W, H);
+      g.strokeStyle = "rgba(255,255,255,.07)";
+      g.lineWidth = 1;
+      for (let y = -((cur * 0.6) % 40); y < H; y += 40) {
+        g.beginPath();
+        g.moveTo(0, y);
+        g.lineTo(W, y);
+        g.stroke();
+      }
+      const hx = W / 2 + 40, hy = H / 2 + 4, a = 0.1 + d * 0.35;
+      const bm = g.createLinearGradient(hx, 0, hx + 260, 0);
+      bm.addColorStop(0, `rgba(255,246,176,${a})`);
+      bm.addColorStop(1, "rgba(255,246,176,0)");
+      g.fillStyle = bm;
+      g.beginPath();
+      g.moveTo(hx, hy - 3);
+      g.lineTo(hx + 260, hy - 70);
+      g.lineTo(hx + 260, hy + 90);
+      g.lineTo(hx, hy + 5);
+      g.fill();
+      sn.forEach((s) => {
+        s.y -= (0.4 + vn * 14) * s.z;
+        if (s.y < -30) {
+          s.y = H + 4;
+          s.x = Math.random() * W;
+        }
+        g.strokeStyle = `rgba(225,247,255,${0.25 + 0.35 * s.z})`;
+        g.lineWidth = s.z * 1.6;
+        g.beginPath();
+        g.moveTo(s.x, s.y);
+        g.lineTo(s.x, s.y + 2 + vn * 22 * s.z);
+        g.stroke();
+      });
+      if (ring) {
+        g.strokeStyle = ring.c;
+        g.globalAlpha = Math.max(0, ring.a);
+        g.lineWidth = 3;
+        g.beginPath();
+        g.arc(W / 2, H / 2, ring.r, 0, 6.3);
+        g.stroke();
+        g.globalAlpha = 1;
+        ring.r += 3.5;
+        ring.a -= 0.018;
+        if (ring.a <= 0) ring = null;
+      }
+      sp = sp.filter((p) => p.l > 0);
+      sp.forEach((p) => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vx *= 0.97;
+        p.vy *= 0.97;
+        p.l -= 0.016;
+        g.globalAlpha = Math.max(0, p.l);
+        g.fillStyle = p.c;
+        g.beginPath();
+        g.arc(p.x, p.y, 1.5 + p.l * 2.5, 0, 6.3);
+        g.fill();
+      });
+      g.globalAlpha = 1;
+    },
+  };
+}
+
+function Stage({ from, pts, tier, onProgress, onDone }: { from: number; pts: number; tier: Tier | null; onProgress: (n: number) => void; onDone: (to: number) => void }) {
+  const cvRef = useRef<HTMLCanvasElement>(null);
+  const diverRef = useRef<HTMLDivElement>(null);
+  const [cnt, setCnt] = useState(from);
+  const cb = useRef({ onProgress, onDone });
+  cb.current = { onProgress, onDone };
+  useEffect(() => {
+    const st = createStage(cvRef.current!);
+    const to = from + pts * 10;
+    const dur = pts ? 1100 + pts * 28 : 700;
+    const t0 = performance.now();
+    let prev = from, pt = t0, fin = false, raf = 0;
+    const f = (now: number) => {
+      const k = Math.min(1, (now - t0) / dur);
+      const e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+      const cur = Math.round(from + (to - from) * e);
+      const dt = Math.max(0.001, (now - pt) / 1000);
+      const vn = Math.min(1, Math.abs(cur - prev) / dt / 450);
+      prev = cur;
+      pt = now;
+      if (k < 1) {
+        setCnt(cur);
+        cb.current.onProgress(cur);
+      }
+      FLOW = Math.max(FLOW, vn);
+      const dv = diverRef.current;
+      if (dv) {
+        if (pts === 0) dv.style.transform = k < 1 ? `translateX(${Math.sin(k * 20) * 10 * (1 - k)}px) rotate(${Math.sin(k * 20) * 12 * (1 - k)}deg)` : "none";
+        else dv.style.transform = `translateY(${Math.sin(now / 170) * 5}px) rotate(${3 + vn * 14 + Math.sin(now / 250) * 4}deg)`;
+      }
+      st.draw(cur, vn);
+      if (k >= 1 && !fin) {
+        fin = true;
+        setCnt(to);
+        cb.current.onDone(to);
+        if (pts && tier) {
+          st.pulse(tier.color);
+          if (pts >= 50) st.spark(tier.color);
+          if (pts >= 75) flash(tier.color);
+        }
+      }
+      raf = requestAnimationFrame(f);
+    };
+    raf = requestAnimationFrame(f);
+    return () => cancelAnimationFrame(raf);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <div className="stage">
+      <canvas ref={cvRef} />
+      <div className="diver" ref={diverRef}><Sub /></div>
+      <div className="dcount">{cnt.toLocaleString("hu-HU")} m</div>
+    </div>
+  );
+}
+
+const KELP = Array.from({ length: 12 }, (_, i) => 30 + i * 85);
+
 /* ---------- Alkalmazás ---------- */
 export default function App() {
   const [screen, setScreen] = useState<Screen>("menu");
   const [practice, setPractice] = useState(false);
+  const [curDay, setCurDay] = useState<string | null>(null);
+  const [saveIt, setSaveIt] = useState(false);
   const [order, setOrder] = useState<number[]>([]);
   const [round, setRound] = useState(0);
   const [rounds, setRounds] = useState<RoundResult[]>([]);
@@ -313,19 +655,19 @@ export default function App() {
   const [left, setLeft] = useState(TIME * 10);
   const [input, setInput] = useState("");
   const [bad, setBad] = useState("");
+  const [sug, setSug] = useState<Answer | null>(null);
+  const [sugText, setSugText] = useState("");
   const [shake, setShake] = useState(0);
   const [animDone, setAnimDone] = useState(false);
   const [copied, setCopied] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const nextRef = useRef<HTMLButtonElement>(null);
 
-  const bubbles = useMemo(
-    () => Array.from({ length: 14 }, () => ({ s: 6 + Math.random() * 16, l: Math.random() * 100, d: 9 + Math.random() * 14, dl: Math.random() * 20 })),
-    []
-  );
-
   const q: Question | undefined = order.length ? Q[order[round]] : undefined;
   const total = rounds.reduce((s, r) => s + r.pts, 0);
+  const today = todayKey();
+  const archive = useMemo(() => (screen === "menu" ? daysList().map((k) => ({ k, s: getSaved(k) })) : []), [screen]);
+  const savedToday = archive.length ? archive[0].s : null;
 
   const goMenu = () => {
     setScreen("menu");
@@ -333,17 +675,29 @@ export default function App() {
     setShown(0);
   };
 
-  const begin = (prac: boolean) => {
-    setPractice(prac);
-    setOrder(pickOrder(prac));
+  const resetRun = (ord: number[]) => {
+    setOrder(ord);
     setRound(0);
     setRounds([]);
     setDepth(0);
     setShown(0);
     setInput("");
     setBad("");
+    setSug(null);
     setCopied("");
     setScreen("play");
+  };
+  const beginDay = (day: string) => {
+    setPractice(false);
+    setCurDay(day);
+    setSaveIt(!getSaved(day));
+    resetRun(pickOrder(false, day));
+  };
+  const beginPractice = () => {
+    setPractice(true);
+    setCurDay(null);
+    setSaveIt(false);
+    resetRun(pickOrder(true, ""));
   };
 
   const finish = (text: string) => {
@@ -352,38 +706,51 @@ export default function App() {
     const tier = hit ? tierOf(hit[1]) : null;
     setRounds([...rounds, { q, text: text.trim(), hit, tier, pts: tier ? tier.pts : 0 }]);
     setAnimDone(false);
+    setSug(null);
     setScreen("reveal");
   };
 
   const submit = () => {
     if (!q) return;
-    if (!input.trim()) {
+    const v = input;
+    if (!v.trim()) {
       setBad("Írj be egy választ!");
       return;
     }
-    if (!findAnswer(q, input)) {
-      setBad(`„${input.trim()}” nem jó, vagy nincs a listámban. Próbálj egy másikat!`);
-      setInput("");
-      setShake((s) => s + 1);
-      inputRef.current?.focus();
+    if (sug && norm(v) === sugText) {
+      finish(sug[0]);
       return;
     }
-    finish(input);
+    if (findAnswer(q, v)) {
+      finish(v);
+      return;
+    }
+    const s = suggest(q, v);
+    if (s) {
+      setSug(s);
+      setSugText(norm(v));
+      setBad("");
+      return;
+    }
+    setBad(`„${v.trim()}” nem jó, vagy nincs a listámban. Próbálj egy másikat!`);
+    setInput("");
+    setShake((n) => n + 1);
+    inputRef.current?.focus();
   };
 
   const next = () => {
     if (round >= order.length - 1) {
-      if (!practice) putSaved({ depth, emoji: rounds.map((r) => r.tier?.ico ?? "🫧").join("") });
+      if (!practice && saveIt && curDay) putSaved(curDay, { depth, emoji: rounds.map((r) => r.tier?.ico ?? "🫧").join("") });
       setScreen("end");
     } else {
       setRound(round + 1);
       setInput("");
       setBad("");
+      setSug(null);
       setScreen("play");
     }
   };
 
-  // visszaszámláló
   useEffect(() => {
     if (screen !== "play") return;
     setLeft(TIME * 10);
@@ -399,52 +766,32 @@ export default function App() {
     if (screen === "play") inputRef.current?.focus();
   }, [screen, round]);
 
-  // merülés animáció
-  useEffect(() => {
-    if (screen !== "reveal") return;
-    const res = rounds[rounds.length - 1];
-    const from = depth;
-    const to = from + res.pts * 10;
-    const dur = res.pts ? 800 + res.pts * 22 : 600;
-    const t0 = performance.now();
-    let raf = 0;
-    const f = (now: number) => {
-      const k = Math.min(1, (now - t0) / dur);
-      const e = -(Math.cos(Math.PI * k) - 1) / 2;
-      setShown(Math.round(from + (to - from) * e));
-      if (k < 1) raf = requestAnimationFrame(f);
-      else {
-        setDepth(to);
-        setShown(to);
-        setAnimDone(true);
-      }
-    };
-    raf = requestAnimationFrame(f);
-    return () => cancelAnimationFrame(raf);
-  }, [screen]); // eslint-disable-line react-hooks/exhaustive-deps
-
   useEffect(() => {
     if (animDone) nextRef.current?.focus();
   }, [animDone]);
 
-  const saved = screen === "menu" ? getSaved() : null;
   const res = rounds[rounds.length - 1];
   const last = round >= order.length - 1;
   const verdict =
     depth >= 5000 ? "Mélytengeri legenda! 🐙" : depth >= 3000 ? "Remek merülés, a sötétségig jutottál. 🔦" : depth >= 1500 ? "Szép munka, a kék zónát elérted. 🐠" : "Még a felszín közelében jársz, próbáld ritkább válaszokkal! 🌊";
-  const share = `Rákillió 🌊 ${practice ? "gyakorlás" : dayKey()} · ${depth.toLocaleString("hu-HU")} m\n${rounds.map((r) => r.tier?.ico ?? "🫧").join("")}`;
+  const share = `Rákillió 🌊 ${practice ? "gyakorlás" : curDay} · ${depth.toLocaleString("hu-HU")} m\n${rounds.map((r) => r.tier?.ico ?? "🫧").join("")}`;
+  const d = Math.min(1, shown / MAXD);
 
   return (
-    <div style={{ "--d": String(Math.min(1, shown / MAXD)) } as CSSProperties}>
+    <div style={{ "--d": String(d) } as CSSProperties}>
       <style>{css}</style>
+      <div className="sunglow" />
+      <svg className="kelp" viewBox="0 0 1000 130" preserveAspectRatio="none" aria-hidden="true">
+        {KELP.map((x) => (
+          <path key={x} d={`M${x} 130 C${x - 18} 95 ${x + 22} 70 ${x + 4} 20 C${x + 30} 70 ${x + 8} 100 ${x + 26} 130Z`} />
+        ))}
+      </svg>
       <div className="dim" />
-      {bubbles.map((b, i) => (
-        <div key={i} className="bub" style={{ width: b.s, height: b.s, left: `${b.l}%`, animationDuration: `${b.d}s`, animationDelay: `-${b.dl}s` }} />
-      ))}
+      <Background d={d} />
 
       <div className="gauge">
         <small>{shown.toLocaleString("hu-HU")} m</small>
-        <div className="track"><div className="fill" style={{ height: `${Math.min(100, (shown / MAXD) * 100)}%` }} /></div>
+        <div className="track"><div className="fill" style={{ height: `${d * 100}%` }} /></div>
         <small>7000 m</small>
       </div>
 
@@ -461,24 +808,36 @@ export default function App() {
           {screen === "menu" && (
             <>
               <h2>Merülj le a mélybe!</h2>
-              <div className="meta"><span>Mai kérdéssor: {dayKey()}</span></div>
+              <div className="meta"><span>Ma: {dayLabel(today)}</span></div>
               <br />
               <p style={{ color: "var(--muted)", lineHeight: 1.55 }}>
-                7 kérdést kapsz, mindegyikre {TIME} másodperced van. Sok válasz helyes, de az a kérdés, mennyien gondoltak rá: minél ritkább a jó válaszod, annál több pontot (és métert) kapsz. A „gyakoriság” a játék saját, beépített becslése, nem valódi játékosok adata.
+                7 kérdést kapsz, mindegyikre {TIME} másodperced van. Sok válasz helyes, de az a kérdés, mennyien gondoltak rá: minél ritkább a jó válaszod, annál több pontot (és métert) kapsz. Ha elgépelsz valamit, megkérdezem, erre gondoltál-e. A „gyakoriság” a játék saját, beépített becslése, nem valódi játékosok adata.
               </p>
               <div className="tiers">
                 {TIERS.map((t) => <span className="tier" key={t.name}>{t.ico} {t.name} · {t.pts} pt</span>)}
               </div>
               <br />
-              {saved ? (
+              {savedToday ? (
                 <p style={{ marginBottom: 12 }}>
-                  A mai merülésed már megvan: <b>{saved.depth.toLocaleString("hu-HU")} m</b> {saved.emoji}
-                  <br /><span className="hint">Holnap új kérdéssor jön.</span>
+                  A mai merülésed már megvan: <b>{savedToday.depth.toLocaleString("hu-HU")} m</b> {savedToday.emoji}
+                  <br /><span className="hint">Holnap új kérdéssor jön, a régieket lent találod.</span>
                 </p>
               ) : (
-                <><button className="btn" onClick={() => begin(false)}>Mai napi merülés</button>{" "}</>
+                <><button className="btn" onClick={() => beginDay(today)}>Mai napi merülés</button>{" "}</>
               )}
-              <button className="btn ghost" onClick={() => begin(true)}>Gyakorlás (véletlen kérdések)</button>
+              <button className="btn ghost" onClick={beginPractice}>Gyakorlás (véletlen kérdések)</button>
+
+              <h3 style={{ margin: "20px 0 4px" }}>📅 Napi merülések archívuma</h3>
+              <div className="hint" style={{ margin: "0 0 8px" }}>2026. nov. 25-től minden napi kérdéssor el van tárolva, bármikor visszamehetsz rájuk.</div>
+              <div className="archive">
+                {archive.map(({ k, s }) => (
+                  <div className="arow" key={k}>
+                    <span className="ad">{dayLabel(k)}{k === today && <em>ma</em>}</span>
+                    <span className="ar">{s ? <>{s.emoji} <b>{s.depth.toLocaleString("hu-HU")} m</b></> : <span style={{ color: "var(--muted)" }}>még nem játszottad</span>}</span>
+                    <button className={`btn${s ? " ghost" : ""}`} onClick={() => beginDay(k)}>{s ? "Újra (nem számít)" : "Játék"}</button>
+                  </div>
+                ))}
+              </div>
             </>
           )}
 
@@ -487,13 +846,23 @@ export default function App() {
               <div className="meta"><span>{round + 1} / {order.length}. kérdés</span><span>{Math.ceil(left / 10)} mp</span></div>
               <div className="timer"><i className={left < 80 ? "low" : ""} style={{ width: `${Math.max(0, (left / (TIME * 10)) * 100)}%` }} /></div>
               <h2>{q.p}</h2>
+              {sug && (
+                <div className="sug on">
+                  Erre gondoltál: <b>{sug[0]}</b>?{" "}
+                  <button className="btn" onClick={() => finish(sug[0])}>Igen</button>{" "}
+                  <button className="btn ghost" onClick={() => { setSug(null); setInput(""); inputRef.current?.focus(); }}>Nem</button>
+                </div>
+              )}
               <div className="row">
                 <input
                   key={shake}
                   ref={inputRef}
                   className={shake ? "shake" : ""}
                   value={input}
-                  onChange={(e) => setInput(e.target.value)}
+                  onChange={(e) => {
+                    setInput(e.target.value);
+                    if (sug && norm(e.target.value) !== sugText) setSug(null);
+                  }}
                   onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
                   autoComplete="off"
                   autoCapitalize="off"
@@ -510,12 +879,18 @@ export default function App() {
 
           {screen === "reveal" && res && (
             <>
-              <div className="stage">
-                <div className="lines" style={{ backgroundPositionY: -shown * 0.6 }} />
-                <div className="bubs"><i /><i /><i /><i /></div>
-                <div className={`diver ${res.pts ? "sink" : "nope"}`}><Sub /></div>
-                <div className="dcount">{shown.toLocaleString("hu-HU")} m</div>
-              </div>
+              <Stage
+                key={rounds.length}
+                from={depth}
+                pts={res.pts}
+                tier={res.tier}
+                onProgress={setShown}
+                onDone={(to) => {
+                  setDepth(to);
+                  setShown(to);
+                  setAnimDone(true);
+                }}
+              />
               <div className="res" style={{ visibility: animDone ? "visible" : "hidden" }}>
                 {res.hit && res.tier ? (
                   <>
@@ -540,7 +915,9 @@ export default function App() {
           {screen === "end" && (
             <>
               <div className="center">
-                <div className="meta" style={{ justifyContent: "center" }}>{practice ? "Gyakorlás" : `Mai merülés · ${dayKey()}`} · vége</div>
+                <div className="meta" style={{ justifyContent: "center" }}>
+                  {practice ? "Gyakorlás" : `Merülés · ${curDay ? dayLabel(curDay) : ""}${saveIt ? "" : " · újrajátszás"}`} · vége
+                </div>
                 <div className="score big">{total}</div>
                 <div className="pts">PONT · {depth.toLocaleString("hu-HU")} m mélység</div>
                 <p style={{ color: "var(--muted)" }}>{verdict}</p>
