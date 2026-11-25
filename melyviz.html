@@ -310,12 +310,12 @@ th{color:var(--muted);font-weight:500;font-size:.75rem}
 
   function end() {
     var total = rounds.reduce(function (s, r) { return s + r.pts; }, 0);
-    var verdict = depth >= 5000 ? "Mélytengeri legenda! 🐙" : depth >= 3000 ? "Remek merülés, a sötétségig jutottál. 🔦" : depth >= 1500 ? "Szép munka, a kék zónát elérted. 🐠" : "Még a felszín közelében jársz, próbáld ritkább válaszokkal! 🌊";
+    var verdict = depth >= 5000 ? "Rákillió legenda! 🐙" : depth >= 3000 ? "Remek merülés, a sötétségig jutottál. 🔦" : depth >= 1500 ? "Szép munka, a kék zónát elérted. 🐠" : "Még a felszín közelében jársz, próbáld ritkább válaszokkal! 🌊";
     var rows = rounds.map(function (r) {
       return "<tr><td>" + (r.hit ? r.tier.ico : "🫧") + "</td><td>" + (r.hit ? r.hit[0] : (r.text ? "—" : "kihagyva")) + "</td><td>" + (r.hit ? r.tier.name : "") + "</td><td>" + r.pts + "</td><td>" + rarest(r.q) + "</td></tr>";
     }).join("");
     var perfHtml = report(total);
-    var share = "Mélyvíz 🌊 " + (practice ? "gyakorlás" : dayKey) + " · " + depth.toLocaleString("hu-HU") + " m\n" + rounds.map(function (r) { return r.hit ? r.tier.ico : "🫧"; }).join("");
+    var share = "Rákillió 🌊 " + (practice ? "gyakorlás" : dayKey) + " · " + depth.toLocaleString("hu-HU") + " m\n" + rounds.map(function (r) { return r.hit ? r.tier.ico : "🫧"; }).join("");
     card.innerHTML = '<div class="center"><div class="meta" style="justify-content:center">' + (practice ? "Gyakorlás" : "Mai merülés · " + dayKey) + ' · vége</div><div class="score big">' + total + '</div><div class="pts">PONT · ' + depth.toLocaleString("hu-HU") + ' m mélység</div><p style="color:var(--muted)">' + verdict + '</p></div>' + perfHtml + '<table><tr><th></th><th>Válaszod</th><th>Szint</th><th>Pont</th><th>Ritka példa</th></tr>' + rows + '</table><div class="row"><button class="btn" id="again">Vissza a menübe</button><button class="btn ghost" id="share">Eredmény másolása</button></div><div class="hint" id="msg"></div>';
     if (!practice) putSaved({ depth: depth, emoji: rounds.map(function (r) { return r.hit ? r.tier.ico : "🫧"; }).join("") });
     document.getElementById("again").onclick = start;

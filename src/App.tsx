@@ -430,7 +430,7 @@ export default function App() {
   const last = round >= order.length - 1;
   const verdict =
     depth >= 5000 ? "Mélytengeri legenda! 🐙" : depth >= 3000 ? "Remek merülés, a sötétségig jutottál. 🔦" : depth >= 1500 ? "Szép munka, a kék zónát elérted. 🐠" : "Még a felszín közelében jársz, próbáld ritkább válaszokkal! 🌊";
-  const share = `Mélyvíz 🌊 ${practice ? "gyakorlás" : dayKey()} · ${depth.toLocaleString("hu-HU")} m\n${rounds.map((r) => r.tier?.ico ?? "🫧").join("")}`;
+  const share = `Rákillió 🌊 ${practice ? "gyakorlás" : dayKey()} · ${depth.toLocaleString("hu-HU")} m\n${rounds.map((r) => r.tier?.ico ?? "🫧").join("")}`;
 
   return (
     <div style={{ "--d": String(Math.min(1, shown / MAXD)) } as CSSProperties}>
@@ -449,7 +449,7 @@ export default function App() {
       <div className="wrap">
         <header>
           <button className="btn ghost" style={{ float: "left", padding: "6px 12px", fontSize: ".85rem" }} onClick={goMenu}>☰ Menü</button>
-          <h1>Mély<em>víz</em></h1>
+          <h1>Rák<em>illió</em></h1>
           <p>Minél ritkább a helyes válaszod, annál mélyebbre jutsz.</p>
         </header>
 
