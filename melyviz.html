@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mélyvíz – a ritka válasz játéka</title>
+<style>
+:root{--d:0;--fg:#eaf6ff;--muted:#8fb4cc;--card:rgba(6,30,52,.78);--line:#1f5278;--accent:#35c4ff;--ok:#3ddc97;--bad:#ff6b6b;color-scheme:dark}
+*{box-sizing:border-box;margin:0}
+html,body{min-height:100%}
+body{color:var(--fg);font-family:system-ui,-apple-system,sans-serif;background:linear-gradient(180deg,#2aa9e0 0%,#0b5d94 25%,#06304f 55%,#020d1c 100%);background-attachment:fixed;padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}
+.dim{position:fixed;inset:0;background:#000;opacity:calc(var(--d)*.55);pointer-events:none;transition:opacity .2s}
+.bub{position:fixed;bottom:-20px;border-radius:50%;border:1px solid #ffffff55;animation:rise linear infinite;pointer-events:none}
+@keyframes rise{to{transform:translateY(-110vh)}}
+.gauge{position:fixed;right:14px;top:70px;bottom:24px;width:34px;display:flex;flex-direction:column;align-items:center;gap:6px;z-index:2}
+.gauge .track{flex:1;width:8px;border-radius:8px;background:#ffffff22;position:relative;overflow:hidden}
+.gauge .fill{position:absolute;top:0;left:0;right:0;height:0;background:linear-gradient(#7fe3ff,#35c4ff);border-radius:8px;transition:height .15s}
+.gauge small{font-size:.7rem;color:var(--muted);writing-mode:vertical-rl}
+.wrap{position:relative;z-index:1;max-width:620px;margin:0 auto;padding:22px 64px 40px 18px}
+header{text-align:center;margin-bottom:18px}
+header h1{font-size:clamp(2rem,6vw,2.8rem);letter-spacing:-.03em}
+header em{font-style:normal;color:var(--accent)}
+header p{color:var(--muted);margin-top:4px;font-size:.92rem}
+.card{background:var(--card);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:22px;padding:24px}
+.card h2{font-size:1.45rem;line-height:1.3;margin:10px 0 18px}
+.meta{display:flex;justify-content:space-between;color:var(--muted);font-size:.88rem}
+.timer{height:6px;border-radius:6px;background:#ffffff1f;margin-top:8px;overflow:hidden}
+.timer i{display:block;height:100%;width:100%;background:var(--accent)}
+.timer i.low{background:var(--bad)}
+.row{display:flex;gap:8px}
+input{flex:1;min-width:0;font-size:1.05rem;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:#031425;color:var(--fg)}
+input:focus{outline:2px solid var(--accent)}
+.btn{background:var(--accent);color:#03233a;border:0;border-radius:12px;padding:12px 18px;font-weight:700;cursor:pointer;font-size:1rem}
+.btn.ghost{background:#0c3556;color:var(--fg);font-weight:500}
+.btn:hover{filter:brightness(1.1)}
+.tiers{display:flex;flex-wrap:wrap;gap:6px;margin-top:18px}
+.tier{font-size:.72rem;padding:3px 9px;border-radius:999px;background:#0c3556;color:var(--muted)}
+.res{text-align:center;animation:pop .35s ease}
+@keyframes pop{from{transform:scale(.9);opacity:0}to{transform:none;opacity:1}}
+.res .big{font-size:2.6rem;font-weight:800;margin:6px 0}
+.badge{display:inline-block;padding:5px 16px;border-radius:999px;font-weight:700}
+.res p{color:var(--muted);margin:8px 0 18px}
+table{width:100%;border-collapse:collapse;font-size:.88rem;margin:14px 0}
+td,th{padding:7px 4px;border-bottom:1px solid #1f527855;text-align:left}
+th{color:var(--muted);font-weight:500;font-size:.75rem}
+.center{text-align:center}
+.score{font-size:3rem;font-weight:800;color:var(--accent)}
+.hint{color:var(--muted);font-size:.8rem;margin-top:10px}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.mpnote{font-size:.82rem;color:var(--muted);background:#03142588;border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:12px 0;line-height:1.5}
+.codebig{font-size:2.6rem;font-weight:800;letter-spacing:.25em;color:var(--accent);text-align:center;margin:6px 0}
+.plist{display:grid;gap:8px;margin:14px 0}
+.pl{display:flex;align-items:center;gap:12px;background:#031425aa;border:1px solid var(--line);border-radius:12px;padding:8px 12px}
+.pl b{flex:1}
+.tag{font-size:.7rem;padding:2px 8px;border-radius:999px;background:#0c3556;color:var(--muted)}
+.ringw{position:relative;height:300px;margin:6px 0 4px}
+.seat{position:absolute;transform:translate(-50%,-50%);text-align:center;width:92px;transition:transform .25s,opacity .25s;font-size:.78rem}
+.seat.act{filter:drop-shadow(0 0 10px #ffd166);transform:translate(-50%,-50%) scale(1.14)}
+.seat.dead{opacity:.3;filter:grayscale(1)}
+.seat .nm{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.puff{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);line-height:1;animation:pump 1.2s ease-in-out infinite;animation-duration:var(--pp,1.2s)}
+@keyframes pump{50%{transform:translate(-50%,-50%) scale(1.12)}}
+.used{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.used span{font-size:.78rem;background:#0c3556;border-radius:999px;padding:3px 10px}
+.evl{min-height:1.6em;text-align:center;margin:6px 0 10px}
+.badmsg{min-height:1.4em;margin-top:10px;color:var(--bad);font-size:.92rem}
+.shake{animation:shk .35s;border-color:var(--bad)}
+@keyframes shk{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.score.big{font-size:4.8rem;line-height:1;font-weight:800;color:#fff}
+.pts{color:var(--accent);margin:4px 0 6px;font-size:1rem;letter-spacing:.04em}
+.perf{margin:16px 0;padding:14px;border:1px solid var(--line);border-radius:14px;background:#03142588}
+.perf h3{font-size:1.05rem}
+.pmsg{margin:4px 0 10px}
+.cmp{display:grid;grid-template-columns:50px 1fr 80px;gap:8px;align-items:center;font-size:.88rem;margin:4px 0}
+.ct{height:12px;background:#ffffff1c;border-radius:8px;overflow:hidden}
+.ct i{display:block;height:100%;border-radius:8px}
+.cmp b{text-align:right}
+.perf svg{margin-top:10px}
+.stage{position:relative;height:170px;border-radius:16px;overflow:hidden;margin-bottom:14px;background:linear-gradient(#0b5d9455,#02101f88);border:1px solid var(--line)}
+.stage .lines{position:absolute;inset:0;background-image:linear-gradient(to bottom,transparent 59px,#ffffff2e 59px);background-size:100% 60px}
+.stage .diver{position:absolute;left:50%;top:50%;margin:-24px 0 0 -42px;line-height:0;will-change:transform;filter:drop-shadow(0 4px 8px #0008)}
+.stage .dcount{position:absolute;right:12px;top:8px;font-weight:800;font-size:1.3rem;text-shadow:0 2px 6px #000a}
+.stage .bubs i{position:absolute;left:38%;top:50%;width:8px;height:8px;border:1px solid #fff9;border-radius:50%;animation:bubup 1.2s linear infinite}
+.stage .bubs i:nth-child(2){animation-delay:.3s;left:34%}
+.stage .bubs i:nth-child(3){animation-delay:.6s;left:36%}
+.stage .bubs i:nth-child(4){animation-delay:.9s;left:32%}
+@keyframes bubup{from{transform:translateY(0);opacity:.9}to{transform:translateY(-90px);opacity:0}}
+@media(max-width:480px){.wrap{padding-right:56px}.card{padding:18px}}
+@media(prefers-reduced-motion:reduce){.bub{display:none}}
+</style>
+</head>
+<body>
+<div class="dim"></div>
+<div class="gauge"><small id="gl">0 m</small><div class="track"><div class="fill" id="gf"></div></div><small>7000 m</small></div>
+<div class="wrap">
+  <header>
+    <button class="btn ghost" id="home" style="float:left;padding:6px 12px;font-size:.85rem">☰ Menü</button><h1>Mély<em>víz</em></h1>
+    <p>Minél ritkább a helyes válaszod, annál mélyebbre jutsz.</p>
+  </header>
+  <div class="card" id="card"></div>
+</div>
+
+<script>
+(function () {
+  /* Kérdések: [megjelenített név, gyakoriság %, alternatív írásmódok (| jellel)] */
+  var Q = [
+    { p: "Nevezz meg egy európai fővárost!", a: [["Párizs",14,"paris"],["London",12],["Berlin",11],["Róma",10,"roma|rome"],["Madrid",9],["Budapest",8],["Bécs",6,"becs|wien|vienna"],["Prága",5,"praga|prague"],["Athén",4,"athen|athens"],["Lisszabon",4,"lisbon"],["Varsó",3,"varso|warsaw"],["Amszterdam",3],["Brüsszel",2.5,"brussel|brussels"],["Dublin",2],["Helsinki",1.5],["Oslo",1.5],["Stockholm",1.5],["Koppenhága",1.2,"koppenhaga|copenhagen"],["Zágráb",1,"zagrab|zagreb"],["Pozsony",1,"bratislava"],["Belgrád",.8,"belgrad|belgrade"],["Bukarest",.7,"bucharest"],["Reykjavík",.6,"reykjavik"],["Valletta",.2],["Andorra la Vella",.1,"andorra"],["Vaduz",.1]] },
+    { p: "Nevezz meg egy gyümölcsöt, ami piros is lehet!", a: [["Alma",22],["Eper",18],["Cseresznye",12],["Meggy",7],["Málna",7,"malna"],["Görögdinnye",6,"gorogdinnye|dinnye"],["Ribizli",5],["Paradicsom",4],["Gránátalma",4,"granatalma"],["Vörös áfonya",1.5,"piros afonya|vörös áfonya"],["Licsi",1],["Csipkebogyó",.8,"csipkebogyo"],["Sárkánygyümölcs",.8,"sarkanygyumolcs|pitaja"],["Som",.6],["Goji",.5,"goji bogyo"],["Kaktuszfüge",.3,"kaktuszfuge"],["Berkenye",.2]] },
+    { p: "Nevezz meg egy hangszert!", a: [["Gitár",20,"gitar"],["Zongora",18],["Dob",10],["Hegedű",9,"hegedu"],["Fuvola",7],["Trombita",5],["Szaxofon",4],["Cselló",4,"csello"],["Klarinét",3,"klarinet"],["Basszusgitár",3,"basszusgitar|basszus"],["Hárfa",2.5,"harfa"],["Harmonika",2],["Orgona",2],["Furulya",1.5],["Citera",1.5],["Cimbalom",1.2],["Tuba",1],["Oboa",.9],["Duda",.8],["Tárogató",.4,"tarogato"],["Okarina",.3],["Tekerőlant",.15,"tekerolant"],["Teremin",.1,"theremin"],["Üvegharmonika",.05,"uvegharmonika"]] },
+    { p: "Nevezz meg egy tengeri élőlényt!", a: [["Cápa",18,"capa"],["Delfin",15],["Bálna",12,"balna"],["Rák",8,"rak"],["Polip",8],["Medúza",7,"meduza"],["Tengeri csillag",5],["Tintahal",4],["Tengeri teknős",4,"teknos|teknőc"],["Kagyló",3,"kagylo"],["Rája",2.5,"raja"],["Fóka",2,"foka"],["Homár",2,"homar"],["Angolna",1.5],["Korall",1.5],["Tengeri csikó",1.5,"tengeri csiko|csikohal"],["Krill",1.2],["Rozmár",1.2,"rozmar"],["Moréna",.8,"morena"],["Szivacs",.8],["Narvál",.5,"narval"],["Ördöghal",.4,"ordoghal"],["Tengeri uborka",.4],["Nautilusz",.3],["Lámpáshal",.2,"lampashal"]] },
+    { p: "Nevezz meg egy magyar várost!", a: [["Budapest",20],["Debrecen",12],["Szeged",9],["Pécs",8,"pecs"],["Győr",7,"gyor"],["Miskolc",6],["Eger",5],["Sopron",3],["Székesfehérvár",3,"szekesfehervar"],["Kecskemét",2.5,"kecskemet"],["Veszprém",2.5,"veszprem"],["Szombathely",2],["Nyíregyháza",2,"nyiregyhaza"],["Esztergom",1.5],["Szolnok",1.5],["Zalaegerszeg",1.5],["Siófok",1.5,"siofok"],["Békéscsaba",1,"bekescsaba"],["Tokaj",1.2],["Hódmezővásárhely",.8,"hodmezovasarhely"],["Gyula",.8],["Kalocsa",.5],["Mohács",.5,"mohacs"],["Sárospatak",.4,"sarospatak"],["Tata",.4],["Pannonhalma",.2],["Hollókő",.1,"hollokő|hollokõ"]] },
+    { p: "Nevezz meg egy elemet a periódusos rendszerből!", a: [["Oxigén",15,"oxigen"],["Hidrogén",14,"hidrogen"],["Szén",10,"szen"],["Vas",9],["Arany",8],["Nitrogén",6,"nitrogen"],["Hélium",6,"helium"],["Ezüst",4,"ezust"],["Réz",3,"rez"],["Urán",3,"uran"],["Nátrium",2.5,"natrium"],["Klór",2,"klor"],["Kalcium",2],["Higany",2],["Ólom",2,"olom"],["Neon",1.5],["Cink",1.2],["Platina",1],["Kén",1,"ken"],["Foszfor",1],["Szilícium",1,"szilicium"],["Bór",.5,"bor"],["Gallium",.4],["Bizmut",.3],["Ozmium",.1],["Lantán",.1,"lantan"]] },
+    { p: "Nevezz meg egy zöldséget!", a: [["Répa",12,"sargarepa|sárgarépa|repa"],["Paradicsom",11],["Burgonya",10,"krumpli"],["Uborka",9],["Paprika",9],["Hagyma",8,"voroshagyma|vöröshagyma"],["Brokkoli",5],["Káposzta",4,"kaposzta"],["Cukkini",3.5],["Karfiol",3],["Spenót",3,"spenot"],["Padlizsán",2,"padlizsan"],["Fokhagyma",2],["Zeller",1.5],["Kukorica",1.5],["Borsó",1.5,"borso|zoldborso"],["Retek",1.2],["Sütőtök",1.2,"sutotok|toktok"],["Spárga",1,"sparga"],["Karalábé",.8,"karalabe"],["Kelkáposzta",.8,"kelkaposzta"],["Cékla",.8,"cekla"],["Édesburgonya",.7,"edesburgonya"],["Kelbimbó",.6,"kelbimbo"],["Pasztinák",.5,"pasztinak"],["Articsóka",.4,"articsoka"],["Mángold",.4,"mangold"],["Torma",.3],["Rebarbara",.1]] },
+    { p: "Nevezz meg egy sportágat!", a: [["Foci",25,"labdarugas|futball"],["Kosárlabda",10,"kosarlabda|kosar"],["Tenisz",9],["Úszás",8,"uszas"],["Kézilabda",6,"kezilabda"],["Röplabda",5,"roplabda"],["Atlétika",4,"atletika|futas"],["Jégkorong",4,"jegkorong|hoki"],["Vízilabda",3.5,"vizilabda"],["Torna",3],["Kerékpározás",2.5,"kerekparozas|biciklizes"],["Vívás",2,"vivas"],["Birkózás",1.8,"birkozas"],["Íjászat",1.5,"ijaszat"],["Golf",1.5],["Rögbi",1.5,"rogbi"],["Lovaglás",1.2,"lovaglas"],["Curling",.9],["Cselgáncs",.8,"cselgancs|judo"],["Kajak-kenu",.8,"kajak|kenu"],["Krikett",.7,"cricket"],["Sziklamászás",.6,"sziklamaszas"],["Modern ötpróba",.4,"otproba|pentatlon"],["Skeleton",.15],["Sepak takraw",.05]] },
+    { p: "Nevezz meg egy színt!", a: [["Piros",20],["Kék",18,"kek"],["Zöld",16,"zold"],["Sárga",10,"sarga"],["Fekete",6],["Fehér",5,"feher"],["Narancs",5,"narancssarga"],["Lila",4],["Rózsaszín",3,"rozsaszin"],["Barna",3],["Szürke",2.5,"szurke"],["Vörös",1.5,"voros"],["Türkiz",1.5,"turkiz"],["Bordó",1.2,"bordo"],["Ibolya",1.2],["Arany",.8],["Indigó",.6,"indigo"],["Okker",.4],["Bíbor",.4,"bibor"],["Cián",.3,"cian|cyan"],["Magenta",.3],["Karmazsin",.2],["Azúr",.2,"azur"]] },
+    { p: "Nevezz meg egy afrikai országot!", a: [["Egyiptom",16],["Dél-Afrika",12],["Nigéria",8,"nigeria"],["Kenya",8],["Marokkó",7,"marokko"],["Etiópia",5,"etiopia"],["Ghána",4,"ghana"],["Tunézia",4,"tunezia"],["Algéria",3.5,"algeria"],["Tanzánia",3,"tanzania"],["Szenegál",2.5,"szenegal"],["Uganda",2],["Kamerun",1.8],["Madagaszkár",1.8,"madagaszkar"],["Szomália",1.2,"szomalia"],["Namíbia",1.2,"namibia"],["Zimbabwe",1],["Botswana",.8],["Mali",.7],["Eritrea",.4],["Szváziföld",.3,"eswatini|svazifold"],["Dzsibuti",.2],["Comore-szigetek",.1,"comore"]] },
+    { p: "Nevezz meg egy madarat!", a: [["Sas",12],["Veréb",11,"vereb"],["Galamb",10],["Varjú",8,"varju"],["Fecske",7],["Papagáj",6,"papagaj"],["Bagoly",6],["Gólya",5,"golya"],["Holló",5,"hollo"],["Szarka",4],["Pingvin",4],["Kolibri",3],["Sólyom",3,"solyom"],["Strucc",3],["Flamingó",2.5,"flamingo"],["Cinege",2],["Rigó",2,"rigo"],["Páva",1.8,"pava"],["Harkály",1.5,"harkaly"],["Pelikán",1.5,"pelikan"],["Daru",1.5],["Kakukk",1.5],["Tukán",1,"tukan"],["Albatrosz",1],["Kiwi",.9],["Búbosbanka",.8,"bubosbanka"],["Emu",.7],["Kormorán",.6,"kormoran"],["Kakapó",.1,"kakapo"]] },
+    { p: "Nevezz meg egy tésztafélét!", a: [["Spagetti",22,"spaghetti"],["Penne",10],["Lasagne",6,"lasagna|lazanya"],["Tagliatelle",5],["Makaróni",5,"makaroni"],["Fusilli",5],["Gnocchi",4,"nyoki"],["Tortellini",3.5],["Ravioli",3.5],["Farfalle",3],["Fettuccine",2.5],["Rigatoni",2.2],["Cannelloni",2],["Tarhonya",1.5],["Galuska",1.5],["Nokedli",1.5],["Pappardelle",1.2],["Orecchiette",.8],["Csipetke",.7],["Bucatini",.6],["Orzo",.5,"risoni"],["Gemelli",.3],["Cavatappi",.1],["Trofie",.1]] }
+  ];
+  var TIERS = [
+    { min: 10, name: "Gyakori", pts: 5, color: "#7a8ea0", ico: "⚪" },
+    { min: 5, name: "Ismert", pts: 15, color: "#5aa9e6", ico: "🔵" },
+    { min: 2.5, name: "Szokatlan", pts: 30, color: "#3ddc97", ico: "🟢" },
+    { min: 1.2, name: "Ritka", pts: 50, color: "#f2c94c", ico: "🟡" },
+    { min: .5, name: "Nagyon ritka", pts: 75, color: "#ff9f43", ico: "🟠" },
+    { min: 0, name: "Egy a krillióból", pts: 100, color: "#ff5fa2", ico: "💎" }
+  ];
+  var TIME = 25, MAXD = 7000;
+
+  var norm = function (s) { return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, ""); };
+  var tierOf = function (pct) { for (var i = 0; i < TIERS.length; i++) if (pct >= TIERS[i].min) return TIERS[i]; return TIERS[5]; };
+  function lev(a, b) {
+    var m = [], i, j;
+    for (i = 0; i <= a.length; i++) { m[i] = [i]; }
+    for (j = 1; j <= b.length; j++) m[0][j] = j;
+    for (i = 1; i <= a.length; i++) for (j = 1; j <= b.length; j++)
+      m[i][j] = Math.min(m[i - 1][j] + 1, m[i][j - 1] + 1, m[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    return m[a.length][b.length];
+  }
+  function findAnswer(q, text) {
+    var n = norm(text); if (!n) return null;
+    var best = null, i, k;
+    for (i = 0; i < q.a.length; i++) {
+      var names = [q.a[i][0]].concat(q.a[i][2] ? q.a[i][2].split("|") : []);
+      for (k = 0; k < names.length; k++) {
+        var nn = norm(names[k]);
+        if (nn === n) return q.a[i];
+        if (!best && n.length >= 5 && nn.length >= 5 && lev(n, nn) <= 1) best = q.a[i];
+      }
+    }
+    return best;
+  }
+
+  var practice = false;
+  var dayKey = (function () { var d = new Date(); return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); })();
+  function hash(s) { var h = 2166136261; for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+  function rng(seed) { var a = seed >>> 0; return function () { a = (a + 0x6D2B79F5) | 0; var t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  function pickOrder(prac) {
+    var r = prac ? Math.random : rng(hash("melyviz-" + dayKey));
+    var idx = Q.map(function (_, i) { return i; });
+    for (var i = idx.length - 1; i > 0; i--) { var j = Math.floor(r() * (i + 1)); var t = idx[i]; idx[i] = idx[j]; idx[j] = t; }
+    return idx.slice(0, 7);
+  }
+  function getSaved() { try { return JSON.parse(localStorage.getItem("melyviz:" + dayKey) || "null"); } catch (e) { return null; } }
+  function putSaved(v) { try { localStorage.setItem("melyviz:" + dayKey, JSON.stringify(v)); } catch (e) {} }
+  function startButtons() {
+    var s = getSaved(), h = "";
+    if (s) h += '<p style="margin-bottom:12px">A mai merülésed már megvan: <b>' + s.depth.toLocaleString("hu-HU") + ' m</b> ' + s.emoji + '<br><span class="hint">Holnap új kérdéssor jön.</span></p>';
+    else h += '<button class="btn" id="go">Mai napi merülés</button> ';
+    return h + '<button class="btn ghost" id="prac">Gyakorlás (véletlen kérdések)</button> <button class="btn ghost" id="mp">👥 Többjátékos: Gömbhal-parti</button>';
+  }
+  function cdf(z) { var t = 1 / (1 + 0.2316419 * Math.abs(z)), d = 0.3989423 * Math.exp(-z * z / 2); var p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274)))); return z > 0 ? 1 - p : p; }
+  function report(total) {
+    var mean = 0, vr = 0;
+    rounds.forEach(function (r) { var s = 0, s2 = 0, w = 0; r.q.a.forEach(function (x) { var p = tierOf(x[1]).pts; s += x[1] * p; s2 += x[1] * p * p; w += x[1]; }); var m = s / w; mean += m; vr += s2 / w - m * m; });
+    var sd = Math.sqrt(Math.max(1, vr));
+    var pct = Math.round(cdf((total - mean) / sd) * 100);
+    var W = 600, base = 150, top = 16, pl = 14, pr = 14;
+    var X = function (v) { return pl + (W - pl - pr) * v / 700; };
+    var Y = function (v) { return base - (base - top) * Math.exp(-0.5 * Math.pow((v - mean) / sd, 2)); };
+    var pts = [];
+    for (var v = 0; v <= 700; v += 7) pts.push(X(v).toFixed(1) + "," + Y(v).toFixed(1));
+    var line = "M" + pts.join(" L"), area = line + " L" + X(700) + "," + base + " L" + X(0) + "," + base + " Z";
+    var tv = Math.min(700, Math.max(0, total)), tx = X(tv), ticks = "";
+    for (var t = 0; t <= 700; t += 100) ticks += '<line x1="' + X(t) + '" x2="' + X(t) + '" y1="' + base + '" y2="' + (base + 5) + '" stroke="#8fb4cc"/><text x="' + X(t) + '" y="' + (base + 18) + '" text-anchor="middle" font-size="11" fill="#8fb4cc">' + t + '</text>';
+    var curve = '<svg viewBox="0 0 600 190" width="100%" role="img" aria-label="Pontszámod a többi játékoséhoz képest"><path d="' + area + '" fill="#35c4ff33"/><path d="' + line + '" fill="none" stroke="#35c4ff" stroke-width="2.5"/><line x1="' + pl + '" x2="' + (W - pr) + '" y1="' + base + '" y2="' + base + '" stroke="#8fb4cc"/>' + ticks + '<line x1="' + tx + '" x2="' + tx + '" y1="' + Y(tv) + '" y2="' + base + '" stroke="#ff5fa2" stroke-width="2.5"/><circle cx="' + tx + '" cy="' + Y(tv) + '" r="6" fill="#ff5fa2"/><text x="' + tx + '" y="' + (base + 36) + '" text-anchor="middle" font-size="13" font-weight="700" fill="#ff5fa2">TE · ' + total + '</text></svg>';
+    var n = rounds.length, LW = 600, LH = 280, ltop = 36, lbot = 236;
+    var LY = function (m) { return ltop + (lbot - ltop) * m / 1000; };
+    var lx = function (i) { return 76 + i * (LW - 106) / (n - 1); };
+    var lg = '<rect x="0" y="' + ltop + '" width="' + LW + '" height="' + (LH - ltop) + '" fill="#02101f99" rx="10"/><path d="M0,' + ltop + ' Q40,' + (ltop - 8) + ' 80,' + ltop + ' T160,' + ltop + ' T240,' + ltop + ' T320,' + ltop + ' T400,' + ltop + ' T480,' + ltop + ' T560,' + ltop + ' T640,' + ltop + '" fill="none" stroke="#7fe3ff" stroke-width="2"/>';
+    [0, 250, 500, 750, 1000].forEach(function (m) { lg += '<line x1="46" x2="' + LW + '" y1="' + LY(m) + '" y2="' + LY(m) + '" stroke="#ffffff22" stroke-dasharray="4 5"/><text x="40" y="' + (LY(m) + 4) + '" text-anchor="end" font-size="10" fill="#8fb4cc">' + m + ' m</text>'; });
+    rounds.forEach(function (r, i) {
+      var y = LY(r.pts * 10), c = r.tier ? r.tier.color : "#5d7388";
+      lg += '<line x1="' + lx(i) + '" x2="' + lx(i) + '" y1="' + ltop + '" y2="' + y + '" stroke="' + c + '" stroke-width="2" opacity=".8"/><text x="' + lx(i) + '" y="' + (y + 8) + '" text-anchor="middle" font-size="22">' + (r.pts >= 100 ? "💎" : r.hit ? "🐟" : "🫧") + '</text><text x="' + lx(i) + '" y="' + (LH - 12) + '" text-anchor="middle" font-size="13" fill="#cfe6f5">' + (i + 1) + '</text>';
+    });
+    var log = '<svg viewBox="0 0 ' + LW + ' ' + LH + '" width="100%" role="img" aria-label="Merülési napló kérdésenként">' + lg + '</svg>';
+    return '<div class="perf"><h3>Hol állsz a többiekhez képest?</h3><p class="pmsg"><b>Jobb vagy, mint a mai játékosok kb. ' + pct + '%-a.</b></p>' + curve + '<div class="hint">A görbe a játék becsült gyakorisági adataiból számolt várható pontszám-eloszlás, nem valódi játékosoké.</div></div><div class="perf"><h3>Merülési napló</h3><div class="hint" style="margin:0 0 6px">Minél mélyebb, annál ritkább volt a válaszod.</div>' + log + '</div>';
+  }
+  function avgPts(q) { var s = 0, w = 0; q.a.forEach(function (x) { s += x[1] * tierOf(x[1]).pts; w += x[1]; }); return s / w; }
+  function perf(total) {
+    var avgs = rounds.map(function (r) { return avgPts(r.q); });
+    var avgTotal = avgs.reduce(function (a, b) { return a + b; }, 0);
+    var pct = avgTotal ? Math.round((total - avgTotal) / avgTotal * 100) : 0;
+    var msg = pct >= 0 ? "Az átlagos játékosnál " + pct + "%-kal mélyebbre jutottál." : "Az átlagos játékostól " + Math.abs(pct) + "%-kal elmaradtál.";
+    var W = 560, H = 200, pl = 30, pt = 10, pb = 26, bw = 14, n = rounds.length, gap = (W - pl - 6) / n;
+    var y = function (v) { return pt + (H - pt - pb) * (1 - v / 100); };
+    var g = "";
+    [0, 50, 100].forEach(function (v) { g += '<line x1="' + pl + '" x2="' + W + '" y1="' + y(v) + '" y2="' + y(v) + '" stroke="#ffffff22"/><text x="' + (pl - 6) + '" y="' + (y(v) + 4) + '" text-anchor="end" font-size="10" fill="#8fb4cc">' + v + '</text>'; });
+    rounds.forEach(function (r, i) {
+      var x0 = pl + gap * i + gap / 2, ya = y(avgs[i]), yy = y(r.pts);
+      g += '<rect x="' + (x0 - bw - 1) + '" y="' + ya + '" width="' + bw + '" height="' + Math.max(1, y(0) - ya) + '" rx="3" fill="#6f93ad"/>';
+      g += '<rect x="' + (x0 + 1) + '" y="' + yy + '" width="' + bw + '" height="' + Math.max(1, y(0) - yy) + '" rx="3" fill="' + (r.tier ? r.tier.color : "#33475a") + '"/>';
+      g += '<text x="' + x0 + '" y="' + (H - 8) + '" text-anchor="middle" font-size="11" fill="#8fb4cc">' + (i + 1) + '.</text>';
+    });
+    var maxD = Math.max(total, avgTotal, 1) * 10;
+    var row = function (label, val, color) { return '<div class="cmp"><span>' + label + '</span><div class="ct"><i style="width:' + Math.max(2, val * 10 / maxD * 100) + '%;background:' + color + '"></i></div><b>' + Math.round(val * 10).toLocaleString("hu-HU") + ' m</b></div>'; };
+    return '<div class="perf"><h3>Hogyan teljesítettél?</h3><p class="pmsg">' + msg + '</p>' + row("Te", total, "var(--accent)") + row("Átlag", avgTotal, "#6f93ad") + '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" role="img" aria-label="Pontszámod kérdésenként az átlaghoz képest">' + g + '</svg><div class="hint">Kérdésenként: szürkéskék oszlop = az átlagos játékos, színes oszlop = te. Az átlag a játék becsült gyakorisági adataiból számolt várható pontszám.</div></div>';
+  }
+  function stageHtml() {
+    return '<div class="stage"><div class="lines" id="lines"></div><div class="bubs"><i></i><i></i><i></i><i></i></div><div class="diver" id="diver"><svg viewBox="0 0 84 48" width="84" height="48" aria-hidden="true"><rect x="44" y="0" width="3" height="7" fill="#c99a22"/><rect x="44" y="0" width="10" height="2.5" rx="1" fill="#c99a22"/><rect x="36" y="5" width="20" height="13" rx="4" fill="#e0b43a"/><ellipse cx="44" cy="29" rx="34" ry="15" fill="#f2c94c"/><ellipse cx="44" cy="36" rx="30" ry="7" fill="#d9a92f" opacity=".55"/><path d="M13 29 L3 19 L3 39 Z" fill="#c99a22"/><ellipse cx="5" cy="29" rx="2.5" ry="10" fill="#8a6a15"/><circle cx="30" cy="28" r="4.5" fill="#7fe3ff" stroke="#9c7414" stroke-width="2"/><circle cx="45" cy="28" r="4.5" fill="#7fe3ff" stroke="#9c7414" stroke-width="2"/><circle cx="60" cy="28" r="4.5" fill="#7fe3ff" stroke="#9c7414" stroke-width="2"/></svg></div><div class="dcount" id="dcount">' + depth.toLocaleString("hu-HU") + ' m</div></div>';
+  }
+  function runDive(pts) {
+    var from = depth, to = from + pts * 10, dur = pts ? 800 + pts * 22 : 600, t0 = performance.now();
+    var diver = document.getElementById("diver"), lines = document.getElementById("lines"), cnt = document.getElementById("dcount");
+    (function f(now) {
+      var k = Math.min(1, (now - t0) / dur), e = -(Math.cos(Math.PI * k) - 1) / 2;
+      var cur = Math.round(from + (to - from) * e);
+      setDepth(cur);
+      cnt.textContent = cur.toLocaleString("hu-HU") + " m";
+      lines.style.backgroundPositionY = (-cur * 0.6) + "px";
+      if (pts === 0) diver.style.transform = "translateX(" + Math.sin(k * 20) * 10 * (1 - k) + "px) rotate(" + Math.sin(k * 20) * 12 * (1 - k) + "deg)";
+      else diver.style.transform = "translateY(" + Math.sin(now / 170) * 5 + "px) rotate(" + (10 + Math.sin(now / 250) * 7) + "deg)";
+      if (k < 1 && document.body.contains(cnt)) { requestAnimationFrame(f); return; }
+      setDepth(to);
+      var rb = document.getElementById("resbox");
+      if (rb) { rb.style.visibility = "visible"; var nx = document.getElementById("next"); if (nx) nx.focus(); }
+    })(t0);
+  }
+  var card = document.getElementById("card");
+  var order, round, rounds, depth, timerId, left;
+
+  function setDepth(d) {
+    depth = d;
+    document.documentElement.style.setProperty("--d", Math.min(1, d / MAXD));
+    document.getElementById("gf").style.height = Math.min(100, d / MAXD * 100) + "%";
+    document.getElementById("gl").textContent = d.toLocaleString("hu-HU") + " m";
+  }
+
+  function start() {
+    order = pickOrder(practice);
+    round = 0; rounds = []; setDepth(0);
+    var tiers = TIERS.map(function (t) { return '<span class="tier">' + t.ico + " " + t.name + " · " + t.pts + " pt</span>"; }).join("");
+    card.innerHTML = '<h2>Merülj le a mélybe!</h2><div class="meta"><span>Mai kérdéssor: ' + dayKey + '</span></div><br><p style="color:var(--muted);line-height:1.55">7 kérdést kapsz, mindegyikre ' + TIME + ' másodperced van. Sok válasz helyes, de az a kérdés, mennyien gondoltak rá: minél ritkább a jó válaszod, annál több pontot (és métert) kapsz. A „gyakoriság” a játék saját, beépített becslése, nem valódi játékosok adata.</p><div class="tiers">' + tiers + '</div><br>' + startButtons();
+    var go = document.getElementById("go"), pr = document.getElementById("prac");
+    function begin(p) { practice = p; order = pickOrder(p); round = 0; rounds = []; setDepth(0); ask(); }
+    if (go) go.onclick = function () { begin(false); };
+    pr.onclick = function () { begin(true); };
+    var mpb = document.getElementById("mp"); if (mpb) mpb.onclick = function () { mpMenu(); };
+  }
+
+  function ask() {
+    var q = Q[order[round]];
+    left = TIME * 10;
+    card.innerHTML = '<div class="meta"><span>' + (round + 1) + ' / ' + order.length + '. kérdés</span><span id="tt">' + TIME + ' mp</span></div><div class="timer"><i id="tb"></i></div><h2>' + q.p + '</h2><div class="row"><input id="in" autocomplete="off" autocapitalize="off" placeholder="Írd be a válaszod…"><button class="btn" id="ok">Küldés</button></div><div class="badmsg" id="bad"></div><div class="hint"><button class="btn ghost" id="skip" style="padding:6px 12px;font-size:.85rem">Kihagyás</button></div>';
+    var inp = document.getElementById("in"); inp.focus();
+    var done = false;
+    function finish(text) { if (done) return; done = true; clearInterval(timerId); reveal(q, text); }
+    var bad = document.getElementById("bad");
+    function submit() {
+      var v = inp.value;
+      if (!v.trim()) { bad.textContent = "Írj be egy választ!"; return; }
+      if (!findAnswer(q, v)) {
+        bad.textContent = "„" + v.trim() + "” nem jó, vagy nincs a listámban. Próbálj egy másikat!";
+        inp.value = ""; inp.focus();
+        inp.classList.remove("shake"); void inp.offsetWidth; inp.classList.add("shake");
+        return;
+      }
+      finish(v);
+    }
+    document.getElementById("ok").onclick = submit;
+    document.getElementById("skip").onclick = function () { finish(""); };
+    inp.addEventListener("keydown", function (e) { if (e.key === "Enter") submit(); });
+    timerId = setInterval(function () {
+      left--;
+      document.getElementById("tb").style.width = (left / (TIME * 10) * 100) + "%";
+      document.getElementById("tb").className = left < 80 ? "low" : "";
+      document.getElementById("tt").textContent = Math.ceil(left / 10) + " mp";
+      if (left <= 0) finish(inp.value);
+    }, 100);
+  }
+
+  function rarest(q) { return q.a.slice().sort(function (x, y) { return x[1] - y[1]; })[0][0]; }
+
+  function reveal(q, text) {
+    var hit = findAnswer(q, text), pts = 0, t = null, html;
+    if (hit) { t = tierOf(hit[1]); pts = t.pts; }
+    rounds.push({ q: q, text: text.trim(), hit: hit, tier: t, pts: pts });
+    var last = round === order.length - 1;
+    if (hit) {
+      html = '<div class="res"><span class="badge" style="background:' + t.color + ';color:#04141f">' + t.ico + " " + t.name + '</span><div class="big">+' + pts + ' pont</div><p>„' + hit[0] + '”: a játékosok kb. ' + String(hit[1]).replace(".", ",") + '%-a írta ezt. Lejjebb süllyedtél ' + pts * 10 + ' métert.</p>';
+    } else {
+      html = '<div class="res"><span class="badge" style="background:#33475a">🫧 Nem találtam</span><div class="big">+0 pont</div><p>' + (text.trim() ? "A(z) „" + text.trim().replace(/</g, "&lt;") + "” nincs a listámban, vagy nem illik a kérdéshez." : "Nem érkezett válasz.") + ' Egy nagyon ritka megoldás lett volna: ' + rarest(q) + '.</p>';
+    }
+    html += '<button class="btn" id="next">' + (last ? "Eredmény" : "Következő") + '</button></div>';
+    card.innerHTML = stageHtml() + '<div id="resbox" style="visibility:hidden">' + html + '</div>';
+    runDive(pts);
+    var nx = document.getElementById("next");
+    nx.onclick = function () { round++; last ? end() : ask(); };
+  }
+
+  function end() {
+    var total = rounds.reduce(function (s, r) { return s + r.pts; }, 0);
+    var verdict = depth >= 5000 ? "Mélytengeri legenda! 🐙" : depth >= 3000 ? "Remek merülés, a sötétségig jutottál. 🔦" : depth >= 1500 ? "Szép munka, a kék zónát elérted. 🐠" : "Még a felszín közelében jársz, próbáld ritkább válaszokkal! 🌊";
+    var rows = rounds.map(function (r) {
+      return "<tr><td>" + (r.hit ? r.tier.ico : "🫧") + "</td><td>" + (r.hit ? r.hit[0] : (r.text ? "—" : "kihagyva")) + "</td><td>" + (r.hit ? r.tier.name : "") + "</td><td>" + r.pts + "</td><td>" + rarest(r.q) + "</td></tr>";
+    }).join("");
+    var perfHtml = report(total);
+    var share = "Mélyvíz 🌊 " + (practice ? "gyakorlás" : dayKey) + " · " + depth.toLocaleString("hu-HU") + " m\n" + rounds.map(function (r) { return r.hit ? r.tier.ico : "🫧"; }).join("");
+    card.innerHTML = '<div class="center"><div class="meta" style="justify-content:center">' + (practice ? "Gyakorlás" : "Mai merülés · " + dayKey) + ' · vége</div><div class="score big">' + total + '</div><div class="pts">PONT · ' + depth.toLocaleString("hu-HU") + ' m mélység</div><p style="color:var(--muted)">' + verdict + '</p></div>' + perfHtml + '<table><tr><th></th><th>Válaszod</th><th>Szint</th><th>Pont</th><th>Ritka példa</th></tr>' + rows + '</table><div class="row"><button class="btn" id="again">Vissza a menübe</button><button class="btn ghost" id="share">Eredmény másolása</button></div><div class="hint" id="msg"></div>';
+    if (!practice) putSaved({ depth: depth, emoji: rounds.map(function (r) { return r.hit ? r.tier.ico : "🫧"; }).join("") });
+    document.getElementById("again").onclick = start;
+    document.getElementById("share").onclick = function () {
+      var msg = document.getElementById("msg");
+      try { navigator.clipboard.writeText(share).then(function () { msg.textContent = "Kimásolva!"; }, function () { msg.textContent = share; }); }
+      catch (e) { msg.textContent = share; }
+    };
+  }
+
+  /* ======== TÖBBJÁTÉKOS: Gömbhal-parti ======== */
+  var MP = { room: null, host: false, code: "", me: null, hostPeer: null, name: "", S: null, recvAt: 0, unsubs: [], t: [], dead: true, evn: 0, sig: "", deck: [], di: 0, q: null, tt: 0, deadline: 0, joinAt: 0, waitFail: false };
+  var COLS = ["#ff6b6b", "#ffd166", "#06d6a0", "#4cc9f0", "#c77dff", "#ff9f43", "#9be564"];
+  var SEATS = 7, LIVES = 2, ALPHA = "abcdefghjkmnpqrstuvwxyz23456789";
+  var esc = function (s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); };
+  var cleanName = function (s) { var n = String(s || "").replace(/[^\p{L}\p{N} _.\-]/gu, "").trim().slice(0, 14); return n || "Játékos"; };
+  function subSvg(c, w) {
+    return '<svg viewBox="0 0 84 48" width="' + w + '" height="' + Math.round(w * 48 / 84) + '" aria-hidden="true"><rect x="44" y="0" width="3" height="7" fill="' + c + '"/><rect x="36" y="5" width="20" height="13" rx="4" fill="' + c + '"/><ellipse cx="44" cy="29" rx="34" ry="15" fill="' + c + '"/><path d="M13 29 L3 19 L3 39 Z" fill="' + c + '"/><circle cx="30" cy="28" r="4.5" fill="#bdefff"/><circle cx="45" cy="28" r="4.5" fill="#bdefff"/><circle cx="60" cy="28" r="4.5" fill="#bdefff"/></svg>';
+  }
+  var hearts = function (n) { return n > 0 ? new Array(n + 1).join("❤️") : "💀"; };
+
+  function mpLeave() {
+    MP.dead = true;
+    MP.t.forEach(function (x) { clearInterval(x); clearTimeout(x); });
+    MP.t = []; clearTimeout(MP.tt);
+    MP.unsubs.forEach(function (u) { try { u(); } catch (e) {} });
+    MP.unsubs = [];
+    if (MP.room) { try { MP.room.leave(); } catch (e) {} }
+    MP.room = null; MP.S = null; MP.sig = ""; MP.hostPeer = null; MP.me = null;
+  }
+
+  function mpMenu(note) {
+    mpLeave(); setDepth(0);
+    var nm = ""; try { nm = localStorage.getItem("melyviz:name") || ""; } catch (e) {}
+    card.innerHTML = '<h2>👥 Gömbhal-parti</h2>' +
+      '<p style="color:var(--muted);line-height:1.55;margin-bottom:12px">Legfeljebb 7 játékos ül egy felfújt gömbhal körül. Körben mindenki megnevez egy, a kategóriába illő, még el nem hangzott dolgot, mielőtt a gömbhal kipukkad. Aki nem tud időben válaszolni, elveszít egy életet (2 élete van). Az nyer, aki utolsónak marad.</p>' +
+      '<input id="mpname" maxlength="14" placeholder="Becenév" value="' + esc(nm) + '">' +
+      '<div class="row" style="margin-top:12px"><button class="btn" id="mpcreate">Új szoba létrehozása</button></div>' +
+      '<div class="row" style="margin-top:12px"><input id="mpcode" maxlength="4" placeholder="Szobakód" style="text-transform:uppercase"><button class="btn ghost" id="mpjoin">Csatlakozás</button></div>' +
+      '<div class="badmsg" id="mpmsg">' + esc(note || "") + '</div>' +
+      '<div class="mpnote">A barátaid csak akkor tudnak csatlakozni, ha bejelentkezve megnyitják ezt az oldalt, és legalább Közreműködő (Contributor) jogosultságot kaptak a megosztásnál. Nyilvános linkről nem működik.</div>' +
+      '<button class="btn ghost" id="mpback">Vissza a menübe</button>';
+    var getName = function () { var v = cleanName(document.getElementById("mpname").value); try { localStorage.setItem("melyviz:name", v); } catch (e) {} MP.name = v; };
+    document.getElementById("mpcreate").onclick = function () {
+      getName(); var c = "";
+      for (var i = 0; i < 4; i++) c += ALPHA.charAt(Math.floor(Math.random() * ALPHA.length));
+      mpConnect(c, true);
+    };
+    document.getElementById("mpjoin").onclick = function () {
+      getName();
+      var c = document.getElementById("mpcode").value.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+      if (c.length < 4) { document.getElementById("mpmsg").textContent = "Írd be a 4 karakteres szobakódot."; return; }
+      mpConnect(c, false);
+    };
+    document.getElementById("mpback").onclick = start;
+  }
+
+  async function mpConnect(code, asHost) {
+    var msg = document.getElementById("mpmsg");
+    msg.style.color = "var(--muted)"; msg.textContent = "Csatlakozás…";
+    var R = null;
+    try { R = window.claude && window.claude.use ? await window.claude.use("room") : null; } catch (e) {}
+    if (!R) { msg.style.color = "var(--bad)"; msg.textContent = "A többjátékos mód itt nem érhető el. Nyisd meg az oldalt bejelentkezve, a megosztott linken."; return; }
+    var room;
+    try { room = await R.join("mv-" + code); }
+    catch (e) { msg.style.color = "var(--bad)"; msg.textContent = "Nem sikerült csatlakozni (" + (e && e.code ? e.code : "hiba") + ")."; return; }
+    MP.room = room; MP.host = asHost; MP.code = code.toUpperCase(); MP.dead = false; MP.me = null; MP.hostPeer = null; MP.sig = ""; MP.waitFail = false; MP.joinAt = Date.now();
+    MP.S = asHost ? { code: MP.code, host: null, phase: "lobby", players: [], round: 0, prompt: "", used: [], pass: 0, tl: 0, tm: 0, wait: false, win: null, ev: null } : null;
+    var onErr = function () {};
+    MP.unsubs.push(room.on("hello", onHello, onErr), room.on("ans", onAns, onErr), room.on("st", onSt, onErr), room.onPeers(onPeers, onErr));
+    var hello = function () {
+      if (MP.dead) return;
+      if (MP.S && MP.S.phase !== "lobby") return;
+      if (MP.S && MP.S.players.some(function (p) { return p.id === MP.me; })) return;
+      room.emit("hello", { n: MP.name }).catch(function () {});
+    };
+    hello(); MP.t.push(setInterval(hello, 1500));
+    if (asHost) MP.t.push(setInterval(broadcast, 1000));
+    MP.t.push(setInterval(tick, 150));
+    mpRender();
+  }
+
+  /* ---- hálózat ---- */
+  function onHello(m) {
+    if (MP.dead) return;
+    if (m.sameTab) MP.me = m.peer;
+    if (!MP.host) return;
+    var S = MP.S;
+    if (S.phase !== "lobby" || S.players.some(function (p) { return p.id === m.peer; }) || S.players.length >= SEATS) return;
+    var pl = { id: m.peer, name: cleanName(m.data && m.data.n), lives: LIVES, col: "" };
+    if (m.sameTab) { S.host = m.peer; S.players.unshift(pl); } else S.players.push(pl);
+    S.players.forEach(function (p, i) { p.col = COLS[i % COLS.length]; });
+    broadcast();
+  }
+  function onSt(m) {
+    if (MP.dead || MP.host) return;
+    var d = m.data;
+    if (!d || d.code !== MP.code || !Array.isArray(d.players) || !Array.isArray(d.used)) return;
+    if (MP.hostPeer && m.peer !== MP.hostPeer) return;
+    MP.hostPeer = m.peer; MP.S = d; MP.recvAt = performance.now();
+    mpRender();
+  }
+  function onAns(m) {
+    if (MP.dead || !MP.host) return;
+    var S = MP.S;
+    if (S.phase !== "play" || S.wait) return;
+    var cur = S.players[S.turn];
+    if (!cur || cur.id !== m.peer) return;
+    var text = String((m.data && m.data.t) || "").slice(0, 40);
+    if (!norm(text)) return;
+    var h = findAnswer(MP.q, text);
+    if (!h) { S.ev = { n: ++MP.evn, k: "bad", pid: m.peer, t: text.slice(0, 20) }; broadcast(); return; }
+    if (S.used.indexOf(h[0]) >= 0) { S.ev = { n: ++MP.evn, k: "dup", pid: m.peer, t: h[0] }; broadcast(); return; }
+    S.used.push(h[0]);
+    var t = tierOf(h[1]);
+    S.ev = { n: ++MP.evn, k: "ok", pid: m.peer, t: h[0], tier: t.name, ico: t.ico };
+    S.pass++; S.turn = nextAlive(S.turn);
+    startTurn();
+  }
+  function onPeers(ch) {
+    if (MP.dead || !MP.S || !ch.left.length) return;
+    var S = MP.S, changed = false;
+    ch.left.forEach(function (pe) {
+      if (pe.isMe) return;
+      if (!MP.host) {
+        if (MP.hostPeer && pe.peer === MP.hostPeer) { mpLeave(); mpMenu("A host kilépett, a szoba megszűnt."); }
+        return;
+      }
+      var i = -1;
+      S.players.forEach(function (p, k) { if (p.id === pe.peer) i = k; });
+      if (i < 0) return;
+      changed = true;
+      if (S.phase === "lobby") { S.players.splice(i, 1); S.players.forEach(function (p, k) { p.col = COLS[k % COLS.length]; }); }
+      else if (S.phase === "play") {
+        S.players[i].lives = 0;
+        var alive = S.players.filter(function (p) { return p.lives > 0; });
+        if (alive.length <= 1) { clearTimeout(MP.tt); S.phase = "end"; S.win = alive[0] ? alive[0].id : null; }
+        else if (S.turn === i && !S.wait) { S.turn = nextAlive(i); startTurn(); return; }
+      }
+    });
+    if (changed && !MP.dead) broadcast();
+  }
+  function broadcast() {
+    if (MP.dead || !MP.host || !MP.room) return;
+    var S = MP.S;
+    S.tl = (S.phase === "play" && !S.wait) ? Math.max(0, MP.deadline - Date.now()) : 0;
+    MP.recvAt = performance.now();
+    MP.room.emit("st", S).catch(function () {});
+    mpRender();
+  }
+
+  /* ---- játékmenet (csak a host futtatja) ---- */
+  function nextAlive(i) { var S = MP.S, n = S.players.length; for (var k = 1; k <= n; k++) { var j = (i + k) % n; if (S.players[j].lives > 0) return j; } return i; }
+  function firstAlive(i) { return MP.S.players[i].lives > 0 ? i : nextAlive(i); }
+  function hostStart() {
+    var S = MP.S;
+    if (!MP.host || S.phase !== "lobby" || S.players.length < 2) return;
+    S.players.forEach(function (p) { p.lives = LIVES; });
+    MP.deck = Q.map(function (_, i) { return i; }).sort(function () { return Math.random() - 0.5; }); MP.di = 0;
+    S.round = 0; S.win = null; S.ev = null; S.phase = "play"; S.turn = 0;
+    newRound(0);
+  }
+  function hostReset() {
+    var S = MP.S; clearTimeout(MP.tt);
+    S.phase = "lobby"; S.win = null; S.ev = null; S.wait = false;
+    S.players.forEach(function (p) { p.lives = LIVES; });
+    broadcast();
+  }
+  function newRound(from) {
+    var S = MP.S;
+    MP.q = Q[MP.deck[MP.di++ % MP.deck.length]];
+    S.round++; S.prompt = MP.q.p; S.used = []; S.pass = 0; S.wait = false;
+    S.turn = firstAlive(from);
+    startTurn();
+  }
+  function startTurn() {
+    var S = MP.S;
+    S.tm = Math.max(6000, 14000 - 600 * S.pass);
+    MP.deadline = Date.now() + S.tm;
+    clearTimeout(MP.tt); MP.tt = setTimeout(onTimeout, S.tm + 80);
+    broadcast();
+  }
+  function onTimeout() {
+    var S = MP.S;
+    if (MP.dead || S.phase !== "play" || S.wait) return;
+    var cur = S.players[S.turn]; cur.lives--;
+    S.ev = { n: ++MP.evn, k: "boom", pid: cur.id, t: cur.name, out: cur.lives <= 0 };
+    S.wait = true;
+    var alive = S.players.filter(function (p) { return p.lives > 0; });
+    if (alive.length <= 1) { S.phase = "end"; S.win = alive[0] ? alive[0].id : null; broadcast(); return; }
+    broadcast();
+    MP.t.push(setTimeout(function () { if (!MP.dead && MP.S.phase === "play") newRound(S.turn); }, 2200));
+  }
+
+  /* ---- megjelenítés ---- */
+  function plistHtml(S) {
+    return S.players.map(function (p) { return '<div class="pl">' + subSvg(p.col, 52) + '<b>' + esc(p.name) + (p.id === MP.me ? " (te)" : "") + '</b>' + (p.id === S.host ? '<span class="tag">host</span>' : "") + '</div>'; }).join("");
+  }
+  function waitingHtml() {
+    return '<h2>Csatlakozás…</h2><div class="hint">' + (MP.waitFail ? "Nem található ilyen szoba, vagy a host még nincs bent. Ellenőrizd a kódot." : "Várakozás a szobára…") + '</div><br><button class="btn ghost" id="mpexit">Mégse</button>';
+  }
+  function lobbyHtml(S) {
+    var n = S.players.length;
+    return '<div class="meta"><span>Szoba</span><span>' + n + ' / ' + SEATS + ' játékos</span></div><div class="codebig">' + esc(S.code) + '</div><div class="hint center">Add meg a kódot a barátaidnak: nyissák meg az oldalt, válasszák a Gömbhal-partit, és a Csatlakozást.</div><div class="plist">' + plistHtml(S) + '</div>' +
+      (MP.host ? '<div class="row"><button class="btn" id="mpstart"' + (n < 2 ? " disabled" : "") + '>Indítás</button><button class="btn ghost" id="mpexit">Kilépés</button></div>' + (n < 2 ? '<div class="hint">Legalább 2 játékos kell az induláshoz.</div>' : "")
+        : '<div class="hint">Várakozás, amíg a host elindítja a játékot…</div><br><button class="btn ghost" id="mpexit">Kilépés</button>');
+  }
+  function playHtml(S) {
+    var n = S.players.length, cur = S.players[S.turn] || {};
+    var seats = S.players.map(function (p, i) {
+      var a = -Math.PI / 2 + i * 2 * Math.PI / n, x = 50 + 40 * Math.cos(a), y = 50 + 37 * Math.sin(a);
+      return '<div class="seat' + (i === S.turn && !S.wait ? " act" : "") + (p.lives <= 0 ? " dead" : "") + '" style="left:' + x + '%;top:' + y + '%">' + subSvg(p.col, 56) + '<span class="nm">' + esc(p.name) + (p.id === MP.me ? " ★" : "") + '</span><span>' + hearts(p.lives) + '</span></div>';
+    }).join("");
+    var myTurn = cur.id === MP.me && !S.wait, ev = S.ev, evHtml = "";
+    if (ev) {
+      if (ev.k === "ok") evHtml = '<span style="color:var(--ok)">✓ ' + esc(ev.t) + ' · ' + esc(ev.ico || "") + ' ' + esc(ev.tier || "") + '</span>';
+      else if (ev.k === "boom") evHtml = '<span style="color:var(--bad)">💥 ' + esc(ev.t) + ' mellett kipukkadt a gömbhal! −1 élet' + (ev.out ? " (kiesett)" : "") + '</span>';
+      else if (ev.pid === MP.me) evHtml = '<span style="color:var(--bad)">' + (ev.k === "dup" ? "Ez már elhangzott ebben a körben!" : "„" + esc(ev.t) + "” nem jó, vagy nincs a listámban. Próbálj másikat!") + '</span>';
+    }
+    var spectator = !S.players.some(function (p) { return p.id === MP.me; });
+    var turnLine = myTurn ? '<div class="row"><input id="mpin" autocomplete="off" autocapitalize="off" placeholder="Te jössz! Írd be a válaszod…"><button class="btn" id="mpsend">Küldés</button></div>'
+      : '<div class="hint center">' + (S.wait ? "Következő kör hamarosan…" : esc(cur.name || "") + " következik…") + (spectator ? " (nézőként követed)" : "") + '</div>';
+    return '<div class="meta"><span>Szoba ' + esc(S.code) + ' · ' + S.round + '. kör</span><span id="mptt"></span></div><div class="timer"><i id="mptb"></i></div><h2 style="margin:10px 0 0">' + esc(S.prompt) + '</h2><div class="ringw">' + seats + '<div class="puff" id="mppuff" style="font-size:' + Math.min(5.5, 2.6 + 0.28 * S.pass) + 'rem">🐡</div></div><div class="evl">' + evHtml + '</div>' + turnLine +
+      '<div class="used">' + S.used.map(function (u) { return "<span>" + esc(u) + "</span>"; }).join("") + '</div><br><button class="btn ghost" id="mpexit" style="padding:6px 12px;font-size:.85rem">Kilépés</button>';
+  }
+  function endHtml(S) {
+    var w = S.players.filter(function (p) { return p.id === S.win; })[0];
+    var rank = S.players.slice().sort(function (a, b) { return b.lives - a.lives; });
+    return '<div class="center"><div style="font-size:3rem">🏆</div><h2 style="margin:6px 0">' + (w ? esc(w.name) + " nyert!" : "Döntetlen") + '</h2></div><div class="plist">' +
+      rank.map(function (p) { return '<div class="pl">' + subSvg(p.col, 52) + '<b>' + esc(p.name) + (p.id === MP.me ? " (te)" : "") + '</b><span>' + hearts(p.lives) + '</span></div>'; }).join("") +
+      '</div><div class="row">' + (MP.host ? '<button class="btn" id="mpagain">Új parti</button>' : "") + '<button class="btn ghost" id="mpexit">Kilépés</button></div>' + (MP.host ? "" : '<div class="hint">A host újraindíthatja a játékot.</div>');
+  }
+  function mpSend() {
+    var el = document.getElementById("mpin");
+    if (!el || !MP.room) return;
+    var v = el.value.trim(); if (!v) return;
+    el.value = ""; MP.room.emit("ans", { t: v }).catch(function () {}); el.focus();
+  }
+  function mpRender() {
+    if (MP.dead) return;
+    var S = MP.S;
+    var sig = JSON.stringify(S, function (k, v) { return k === "tl" ? 0 : v; }) + "|" + MP.me + "|" + MP.waitFail;
+    if (sig === MP.sig) return;
+    MP.sig = sig;
+    var el = document.getElementById("mpin"), val = el ? el.value : "";
+    card.innerHTML = !S ? waitingHtml() : S.phase === "lobby" ? lobbyHtml(S) : S.phase === "play" ? playHtml(S) : endHtml(S);
+    var g = function (id) { return document.getElementById(id); };
+    if (g("mpexit")) g("mpexit").onclick = function () { mpLeave(); mpMenu(); };
+    if (g("mpstart")) g("mpstart").onclick = hostStart;
+    if (g("mpagain")) g("mpagain").onclick = hostReset;
+    if (g("mpsend")) g("mpsend").onclick = mpSend;
+    var inp = g("mpin");
+    if (inp) { inp.value = val; inp.addEventListener("keydown", function (e) { if (e.key === "Enter") mpSend(); }); inp.focus(); }
+  }
+  function tick() {
+    if (MP.dead) return;
+    var S = MP.S;
+    if (!S) { if (!MP.waitFail && Date.now() - MP.joinAt > 8000) { MP.waitFail = true; mpRender(); } return; }
+    if (S.phase !== "play") return;
+    var tb = document.getElementById("mptb"); if (!tb) return;
+    var left = S.wait ? 0 : Math.max(0, S.tl - (performance.now() - MP.recvAt));
+    tb.style.width = (S.tm ? left / S.tm * 100 : 0) + "%"; tb.className = left < 3000 ? "low" : "";
+    var tt = document.getElementById("mptt"); if (tt) tt.textContent = Math.ceil(left / 1000) + " mp";
+    var pf = document.getElementById("mppuff"); if (pf) pf.style.setProperty("--pp", (0.25 + 0.95 * (S.tm ? left / S.tm : 1)) + "s");
+  }
+
+  // buborékok
+  for (var b = 0; b < 14; b++) {
+    var el = document.createElement("div"); el.className = "bub";
+    var s = 6 + Math.random() * 16;
+    el.style.cssText = "width:" + s + "px;height:" + s + "px;left:" + Math.random() * 100 + "%;animation-duration:" + (9 + Math.random() * 14) + "s;animation-delay:-" + Math.random() * 20 + "s";
+    document.body.appendChild(el);
+  }
+  document.getElementById("home").onclick = function () { clearInterval(timerId); mpLeave(); start(); };
+  start();
+})();
+</script>
+</body>
+</html>
