@@ -78,7 +78,7 @@ body{color:var(--fg);font-family:system-ui,-apple-system,sans-serif;background:l
 .gauge small{font-size:.7rem;color:var(--muted);writing-mode:vertical-rl}
 .wrap{position:relative;z-index:1;max-width:620px;margin:0 auto;padding:22px 64px 40px 18px}
 header{text-align:center;margin-bottom:18px}
-header h1{font-size:clamp(2rem,6vw,2.8rem);letter-spacing:-.03em}
+header h1{font-size:clamp(2rem,6vw,2.8rem);letter-spacing:-.03em;color:#fff}
 header em{font-style:normal;color:var(--accent)}
 header p{color:var(--muted);margin-top:4px;font-size:.92rem}
 .card{background:var(--card);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:22px;padding:24px}
@@ -914,7 +914,7 @@ export default function App() {
 
   useEffect(() => {
     if (screen === "play") inputRef.current?.focus();
-  }, [screen, round]);
+  }, [screen, round, shake]);
 
   useEffect(() => {
     if (animDone) nextRef.current?.focus();
@@ -950,7 +950,7 @@ export default function App() {
           {screen !== "menu" && (
             <button className="btn ghost" style={{ marginBottom: 10, padding: "6px 14px", fontSize: ".85rem" }} onClick={goMenu}>← Vissza a menübe</button>
           )}
-          <h1>Rá<em>killió</em></h1>
+          <h1>Rák<em>illió</em></h1>
           <p>Minél ritkább a helyes válaszod, annál mélyebbre jutsz.</p>
         </header>
 
