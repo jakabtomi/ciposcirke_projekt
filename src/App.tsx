@@ -168,6 +168,8 @@ let FLOW = 0;
 const TIME = 25;
 const MAXD = 7000;
 const START_DAY = "2026-11-25";
+/* Ide írd a Cloudflare Worker címét (lásd worker.js). Ha üres, csak a beépített lista és a Wikidata dönt. */
+const AI_URL: string = "";
 
 const norm = (s: string) =>
   s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
@@ -350,6 +352,27 @@ async function webCheck(q: Question, text: string): Promise<string | null> {
     }
   } catch {
     /* nincs net, vagy blokkolva van */
+  } finally {
+    clearTimeout(timer);
+  }
+  return null;
+}
+
+async function aiCheck(q: Question, text: string): Promise<string | null> {
+  if (!AI_URL) return null;
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 9000);
+  try {
+    const r = await fetch(AI_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question: q.p, answer: text.slice(0, 60) }),
+      signal: ctl.signal,
+    });
+    const j = (await r.json()) as { ok?: boolean; label?: string };
+    if (j.ok === true && typeof j.label === "string" && j.label.trim()) return j.label.trim().slice(0, 40);
+  } catch {
+    /* hálózati hiba */
   } finally {
     clearTimeout(timer);
   }
@@ -823,13 +846,14 @@ export default function App() {
 
   const online = async (v: string) => {
     if (!q || checking) return;
-    if (!q.wd) {
+    if (!q.wd && !AI_URL) {
       badAnswer(v);
       return;
     }
     setChecking(true);
-    setBad("Ellenőrzöm az interneten…");
-    const label = await webCheck(q, v);
+    setBad("Ellenőrzöm…");
+    let label = q.wd ? await webCheck(q, v) : null;
+    if (!label && AI_URL) label = await aiCheck(q, v);
     setChecking(false);
     if (screenRef.current !== "play") return;
     if (label) {
@@ -976,7 +1000,7 @@ export default function App() {
                 <div className="sug on">
                   Erre gondoltál: <b>{sug[0]}</b>?{" "}
                   <button className="btn" onClick={() => finish(sug[0])}>Igen</button>{" "}
-                  <button className="btn ghost" onClick={() => { const v = input; setSug(null); if (q.wd) void online(v); else { setInput(""); inputRef.current?.focus(); } }}>Nem</button>
+                  <button className="btn ghost" onClick={() => { const v = input; setSug(null); if (q.wd || AI_URL) void online(v); else { setInput(""); inputRef.current?.focus(); } }}>Nem</button>
                 </div>
               )}
               <div className="row">

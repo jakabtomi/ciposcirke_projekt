@@ -237,6 +237,7 @@ header em{background:linear-gradient(90deg,#7fe3ff,#ffffff,#35c4ff,#7fe3ff);back
 
   var practice = false, curDay = null, saveIt = false;
   var START_DAY = "2026-11-25";
+  var AI_URL = ""; // ide jön a Cloudflare Worker címe (lásd worker.js)
   function keyOf(d) { return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); }
   function todayKey() { return keyOf(new Date()); }
   var dayKey = todayKey();
@@ -417,6 +418,15 @@ header em{background:linear-gradient(90deg,#7fe3ff,#ffffff,#35c4ff,#7fe3ff);back
       .catch(function () { return null; })
       .then(function (v) { clearTimeout(timer); return v; });
   }
+  function aiCheck(q, text) {
+    if (!AI_URL) return Promise.resolve(null);
+    var ctl = typeof AbortController === "function" ? new AbortController() : null, timer = setTimeout(function () { if (ctl) ctl.abort(); }, 9000);
+    return fetch(AI_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question: q.p, answer: text.slice(0, 60) }), signal: ctl ? ctl.signal : undefined })
+      .then(function (r) { return r.json(); })
+      .then(function (j) { return j && j.ok === true && typeof j.label === "string" && j.label.trim() ? j.label.trim().slice(0, 40) : null; })
+      .catch(function () { return null; })
+      .then(function (v) { clearTimeout(timer); return v; });
+  }
   /* a felismert új válaszokat megjegyezzük, így legközelebb azonnal elfogadja */
   function learn(q, label) {
     if (findAnswer(q, label)) return;
@@ -488,9 +498,9 @@ header em{background:linear-gradient(90deg,#7fe3ff,#ffffff,#35c4ff,#7fe3ff);back
     }
     function online(v) {
       if (checking) return;
-      if (!q.wd) { badAnswer(v); return; }
-      checking = true; bad.style.color = "var(--muted)"; bad.textContent = "Ellenőrzöm az interneten…";
-      webCheck(q, v).then(function (label) {
+      if (!q.wd && !AI_URL) { badAnswer(v); return; }
+      checking = true; bad.style.color = "var(--muted)"; bad.textContent = "Ellenőrzöm…";
+      (q.wd ? webCheck(q, v) : Promise.resolve(null)).then(function (l) { return l || aiCheck(q, v); }).then(function (label) {
         checking = false;
         if (done) return;
         if (label) { learn(q, label); bad.textContent = ""; finish(label); } else badAnswer(v);
@@ -509,7 +519,7 @@ header em{background:linear-gradient(90deg,#7fe3ff,#ffffff,#35c4ff,#7fe3ff);back
         sug.innerHTML = 'Erre gondoltál: <b></b>? <button class="btn" id="sy">Igen</button> <button class="btn ghost" id="sn">Nem</button>';
         sug.querySelector("b").textContent = s[0];
         document.getElementById("sy").onclick = function () { finish(s[0]); };
-        document.getElementById("sn").onclick = function () { clearSug(); if (q.wd) online(v); else { inp.value = ""; inp.focus(); } };
+        document.getElementById("sn").onclick = function () { clearSug(); if (q.wd || AI_URL) online(v); else { inp.value = ""; inp.focus(); } };
         return;
       }
       online(v);
