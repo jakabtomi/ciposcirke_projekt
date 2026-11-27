@@ -73,7 +73,7 @@ var Q = [
 /* ======== A VILÁG: végtelenül görgethető, rétegzett víz alatti háttér ======== */
 function createWorld(wc, fc) {
   var wg = wc.getContext("2d"), fg = fc.getContext("2d");
-  var W = 600, H = 800, SUBX = 240, SUBY = 330, S = 1.0, MAXD = 7000, LF = [0.5, 0.75, 1];
+  var W = 600, H = 800, SUBX = 240, SUBY = 330, SUBY0 = 120, SUBY1 = 200, S = 1.0, MAXD = 7000, LF = [0.5, 0.75, 1];
   var STOPS = [[0, [70, 185, 240]], [150, [30, 140, 205]], [600, [10, 85, 150]], [1500, [6, 52, 100]], [3000, [4, 30, 66]], [5000, [3, 18, 42]], [7200, [2, 9, 22]]];
   function wcol(d) {
     if (d <= 0) return STOPS[0][1];
@@ -319,11 +319,13 @@ function createWorld(wc, fc) {
   return {
     resize: function (w, h, dpr) {
       W = w; H = h;
-      if (w >= 900) { SUBX = w * 0.7; SUBY = h * 0.46; } else if (w >= 620) { SUBX = w * 0.76; SUBY = h * 0.44; } else { SUBX = w * 0.5; SUBY = h * 0.2; }
+      SUBX = w * 0.5; SUBY0 = Math.max(56, Math.min(140, h * 0.17)); SUBY1 = Math.max(100, Math.min(230, h * 0.27)); SUBY = SUBY0;
       wc.width = Math.round(w * dpr); wc.height = Math.round(h * dpr); fc.width = wc.width; fc.height = wc.height;
       wg.setTransform(dpr, 0, 0, dpr, 0, 0); fg.setTransform(dpr, 0, 0, dpr, 0, 0);
     },
-    geom: function () { return { x: SUBX, y: SUBY }; },
+    geom: function () { return { x: SUBX, y: SUBY, mid: SUBY1 }; },
+    /* p = 0: a hajó a kezdő (magas) helyén; p = 1: lejjebb, kicsit a képernyő közepe felé */
+    setProgress: function (p) { SUBY = SUBY0 + (SUBY1 - SUBY0) * p; },
     spark: function (c) { for (var k = 0; k < 40; k++) { var an = Math.random() * 6.28, v = 1 + Math.random() * 4.5; spk.push({ x: SUBX, y: SUBY, vx: Math.cos(an) * v, vy: Math.sin(an) * v, l: 1, c: c }); } },
     ring: function (c) { rings.push({ r: 14, a: 0.9, c: c }); },
     frame: function (now, cur, vel, dt, tilt) {
@@ -516,8 +518,6 @@ var CSS = `
 .rk .badge{display:inline-block;padding:5px 16px;border-radius:999px;font-weight:700;color:#04141f}
 .rk .big{font-size:clamp(2rem,7vw,3.2rem);font-weight:800;margin:6px 0}
 .rk .res p{margin:6px 0 16px;color:#e3f4ff;line-height:1.45}
-.rk .sheet{position:absolute;inset:0;overflow:auto;background:linear-gradient(90deg,rgba(2,13,28,.94) 0,rgba(3,22,40,.9) min(700px,100%),rgba(2,13,28,.12) 100%);padding:calc(46px + env(safe-area-inset-top,0px)) 70px 60px max(18px,5vw)}
-.rk .in{max-width:620px;margin:0}
 .rk .logo{font-size:clamp(2.6rem,9vw,4.6rem);letter-spacing:-.03em;margin:0}
 .rk .logo em{font-style:normal;background:linear-gradient(90deg,#7fe3ff,#fff,#35c4ff,#7fe3ff);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:rkshim 6s linear infinite}
 @keyframes rkshim{to{background-position:300% 0}}
@@ -542,11 +542,15 @@ var CSS = `
 .rk th{color:#8fb4cc;font-weight:500;font-size:.75rem}
 .rk .flash{position:absolute;inset:0;pointer-events:none;z-index:6;animation:rkfl 1s ease-out forwards}
 @keyframes rkfl{from{opacity:1}to{opacity:0}}
-.rk .col{position:absolute;left:0;top:0;bottom:0;width:min(100%,600px);display:flex;flex-direction:column;justify-content:center;padding:calc(56px + env(safe-area-inset-top,0px)) 70px calc(20px + env(safe-area-inset-bottom,0px)) max(18px,4vw);overflow:auto;text-shadow:0 2px 14px #000c,0 0 3px #0008;background:linear-gradient(90deg,rgba(2,13,28,.55),rgba(2,13,28,.3) 72%,rgba(2,13,28,0));pointer-events:auto}
 .rk .bigm{font-size:clamp(2.4rem,8vw,4.6rem);font-weight:800;letter-spacing:-.02em;line-height:1.05;margin-bottom:8px;text-shadow:0 4px 24px #000a}
 .rk .res{animation:rkpop .4s ease}
-@media(max-width:619px){.rk .col{right:0;top:34%;width:auto;padding:8px 58px calc(14px + env(safe-area-inset-bottom,0px)) 16px;background:linear-gradient(180deg,rgba(2,13,28,0),rgba(2,13,28,.5) 16%,rgba(2,13,28,.62))}.rk .q{font-size:clamp(1.25rem,6vw,1.7rem)}.rk .bigm{font-size:2.4rem;margin-bottom:2px}.rk .sheet{background:linear-gradient(180deg,rgba(6,48,79,.82),rgba(2,13,28,.95));padding:calc(46px + env(safe-area-inset-top,0px)) 58px 60px 16px}.rk .back{padding:6px 11px}}
-@media(max-height:480px) and (min-width:620px){.rk .col{padding-top:46px}.rk .q{font-size:1.3rem;margin-top:6px}.rk .bigm{font-size:2rem}.rk .res p{margin:4px 0 10px}}
+.rk .col{position:absolute;left:0;right:0;top:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;justify-content:safe center;text-align:center;padding:calc(var(--suby,100px) + 46px) 60px calc(18px + env(safe-area-inset-bottom,0px)) 60px;overflow:auto;text-shadow:0 2px 14px #000c,0 0 3px #0008;background:radial-gradient(ellipse 85% 75% at 50% 62%,rgba(2,13,28,.55),rgba(2,13,28,0) 100%);pointer-events:auto}
+.rk .col>*{width:min(100%,640px);flex:none}
+.rk .col .row{text-align:left}
+.rk .sheet{position:absolute;inset:0;overflow:auto;background:linear-gradient(180deg,rgba(6,48,79,.82),rgba(2,13,28,.94));padding:calc(46px + env(safe-area-inset-top,0px)) 56px 60px 20px}
+.rk .in{max-width:680px;margin:0 auto}
+@media(max-width:619px){.rk .col{padding-left:14px;padding-right:54px}.rk .q{font-size:clamp(1.25rem,6vw,1.7rem)}.rk .bigm{font-size:2.4rem;margin-bottom:2px}.rk .sheet{padding:calc(46px + env(safe-area-inset-top,0px)) 54px 60px 16px}.rk .back{padding:6px 11px}}
+@media(max-height:480px){.rk .col{padding-top:calc(var(--suby,60px) + 30px)}.rk .q{font-size:1.3rem;margin-top:6px}.rk .bigm{font-size:2rem}.rk .res p{margin:4px 0 10px}}
 @media(prefers-reduced-motion:reduce){.rk .sub .prop,.rk .logo em{animation:none}}
 `;
 
@@ -561,7 +565,7 @@ export function startGame(root) {
   function resize() {
     var w = root.clientWidth || window.innerWidth, h = root.clientHeight || window.innerHeight;
     world.resize(w, h, Math.min(window.devicePixelRatio || 1, 2));
-    var g = world.geom(); $("sub").style.left = g.x + "px"; $("sub").style.top = g.y + "px";
+    var g = world.geom(); $("sub").style.left = g.x + "px"; $("sub").style.top = g.y + "px"; root.style.setProperty("--suby", g.mid + "px");
   }
   resize(); on(window, "resize", resize);
 
@@ -578,7 +582,10 @@ export function startGame(root) {
       if (k >= 1) { cur = anim.to; vel = 0; var cb = anim.done; anim = null; if (cb) cb(); }
     } else vel *= 0.85;
     tilt += (Math.max(-24, Math.min(30, vel * 0.065)) - tilt) * Math.min(1, dt * 8);
+    var pr = Math.min(1, (mode === "rise" ? MAXD - cur : cur) / 500); pr = pr * pr * (3 - 2 * pr);
+    world.setProgress(pr);
     world.frame(now, cur, vel, dt, tilt);
+    $("sub").style.top = world.geom().y + "px";
     $("sub").style.transform = "translate(-50%,-50%) translateY(" + (Math.sin(now / 600) * 5).toFixed(1) + "px) rotate(" + (tilt + Math.sin(now / 900) * 1.5).toFixed(2) + "deg)";
     var f = Math.max(0, Math.min(1, cur / MAXD)) * 100;
     $("gf").style.height = f + "%"; $("gk").style.top = f + "%"; $("gl").textContent = fmt(Math.round(cur)) + " m";
