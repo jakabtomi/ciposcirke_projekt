@@ -1,5 +1,5 @@
 // @ts-nocheck
-/* A teljes játék egy fájlban (a React-oldal csak elindítja). A kérdések a fájl elején vannak (Q). */
+/* Rákillió – a teljes játék egy fájlban (az App.tsx csak elindítja). A kérdések a fájl elején vannak (Q). */
 var Q = [
   {"p": "Nevezz meg egy európai fővárost!", "a": [["Párizs", 14, "paris"], ["London", 12], ["Berlin", 11], ["Róma", 10, "roma|rome"], ["Madrid", 9], ["Budapest", 8], ["Bécs", 6, "becs|wien|vienna"], ["Prága", 5, "praga|prague"], ["Athén", 4, "athen|athens"], ["Lisszabon", 4, "lisbon"], ["Varsó", 3, "varso|warsaw"], ["Amszterdam", 3], ["Brüsszel", 2.5, "brussel|brussels"], ["Dublin", 2], ["Helsinki", 1.5], ["Oslo", 1.5], ["Stockholm", 1.5], ["Koppenhága", 1.2, "koppenhaga|copenhagen"], ["Zágráb", 1, "zagrab|zagreb"], ["Pozsony", 1, "bratislava"], ["Belgrád", 0.8, "belgrad|belgrade"], ["Bukarest", 0.7, "bucharest"], ["Reykjavík", 0.6, "reykjavik"], ["Valletta", 0.2], ["Andorra la Vella", 0.1, "andorra"], ["Vaduz", 0.1], ["Moszkva", 3, "moscow"], ["Kijev", 1.2, "kiev"], ["Bern", 1, "berne"], ["Tallinn", 1.2], ["Riga", 1.2], ["Vilnius", 1.2], ["Szófia", 0.9, "sofia"], ["Ljubljana", 0.9], ["Szarajevó", 0.7, "sarajevo"], ["Tirana", 0.5], ["Skopje", 0.5], ["Minszk", 0.5, "minsk"], ["Luxembourg", 0.5], ["Podgorica", 0.3], ["Pristina", 0.3], ["Chisinau", 0.3, "kisinyov"], ["Nicosia", 0.3, "nikozia"], ["Vatikánváros", 0.3, "vatikan"], ["Monaco", 0.2], ["San Marino", 0.15]], "wd": {"d": "capital"}},
   {"p": "Nevezz meg egy gyümölcsöt, ami piros is lehet!", "a": [["Alma", 22], ["Eper", 18], ["Cseresznye", 12], ["Meggy", 7], ["Málna", 7, "malna"], ["Görögdinnye", 6, "gorogdinnye|dinnye"], ["Ribizli", 5], ["Paradicsom", 4], ["Gránátalma", 4, "granatalma"], ["Vörös áfonya", 1.5, "piros afonya|vörös áfonya"], ["Licsi", 1], ["Csipkebogyó", 0.8, "csipkebogyo"], ["Sárkánygyümölcs", 0.8, "sarkanygyumolcs|pitaja"], ["Som", 0.6], ["Goji", 0.5, "goji bogyo"], ["Kaktuszfüge", 0.3, "kaktuszfuge"], ["Berkenye", 0.2], ["Szamóca", 1.5], ["Piros szőlő", 1.2], ["Mangó", 1], ["Őszibarack", 1], ["Vérnarancs", 1, "piros narancs"], ["Piros grapefruit", 0.7, "grapefruit"], ["Piros körte", 0.8], ["Papaya", 0.4], ["Galagonya", 0.5], ["Cseresznyeszilva", 0.5], ["Rambutan", 0.3], ["Piros banán", 0.3], ["Madárbirs", 0.3], ["Tamarillo", 0.15], ["Vörös ribizli", 0.8, "piros ribizli"], ["Barack", 0.8, "kajszi|kajszibarack"], ["Cseresznyeparadicsom", 0.4]], "wd": {"d": "fruit|berry|plant|tree|shrub|cultivar|genus"}},
@@ -550,7 +550,7 @@ var CSS = `
 @media(prefers-reduced-motion:reduce){.rk .sub .prop,.rk .logo em{animation:none}}
 `;
 
-function startGame(root) {
+export function startGame(root) {
   var alive = true, cleanups = [], tm = 0, raf = 0;
   root.className = (root.className ? root.className + " " : "") + "rk";
   root.innerHTML = '<style>' + CSS + '</style><canvas id="wc"></canvas><div class="sub" id="sub"></div><canvas id="fc"></canvas><div class="hud" id="hud"></div><div class="gauge"><small id="gl">0 m</small><div class="track"><div class="fill" id="gf"></div><div class="mk" id="gk"></div></div><small>7000 m</small></div><button class="btn ghost back" id="back" style="display:none">← Vissza a menübe</button>';
@@ -740,5 +740,3 @@ function startGame(root) {
     cleanups.forEach(function (fn) { fn(); }); root.innerHTML = "";
   };
 }
-
-export { startGame };

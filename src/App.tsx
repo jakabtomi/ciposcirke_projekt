@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
-import { startGame } from "./game";
+import { startGame } from "./rakillio";
 
-/* A teljes játék (háttér, kérdések, módok) a game.ts fájlban van. */
+/* A teljes játék (háttér, kérdések, módok) a rakillio.ts fájlban van. */
 export default function App() {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
